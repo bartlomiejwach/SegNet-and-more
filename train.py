@@ -5,6 +5,8 @@ import tensorflow as tf
 import numpy as np
 from library import AlexNet
 
+#test git
+
 #GPU Init
 gpus = tf.config.experimental.list_physical_devices('GPU')
 if gpus:
