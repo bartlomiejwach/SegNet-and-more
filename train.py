@@ -14,6 +14,8 @@ if gpus:
   except RuntimeError as e:
     print(e)
 
+#test
+
 #DataSet
 (train_images, train_labels), (test_images, test_labels) = cifar10.load_data()
 CLASS_NAMES= ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
