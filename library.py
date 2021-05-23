@@ -1,177 +1,183 @@
 #Libraries used
-from keras.models import Sequential
-from keras.layers import Dense, Conv2D, MaxPool2D , Flatten, Dropout, BatchNormalization, Activation
+from keras.models import Sequential, Model
+from keras import layers
+from keras.layers import Dense, Conv2D, MaxPooling2D , Flatten, add
+from keras.layers import Dropout, BatchNormalization, Activation, ZeroPadding2D, Concatenate, Input 
+from keras.layers import SeparableConv2D, GlobalAveragePooling2D, AveragePooling2D
 import tensorflow as tf
-
-#GPU Init
-
-gpus = tf.config.experimental.list_physical_devices('GPU')
-if gpus:
-  try:
-    for gpu in gpus:
-      tf.config.experimental.set_memory_growth(gpu, True)
-  except RuntimeError as e:
-    print(e)
-CUDA_VISIBLE_DEVICES=1
 
 
 #Models
 #Models will be saved as Model_Name.model
 
+#model_name(x_train, y_train, input_shape, classes, batch_size, epochs, depth/optional)
+
 #AlexNet Model
-def AlexNet(train_data, validation_data, epochs, validation_freq, batch_size):
-
-  #Image Processing
-  def process_images(image, label):
-    #Resize
-    image = tf.image.per_image_standardization(image)
-    #Resize
-    image = tf.image.resize(image, (227,227))
-    return image, label
-
-  train_data_size = tf.data.experimental.cardinality(train_data).numpy()
-  validation_data_size = tf.data.experimental.cardinality(validation_data).numpy()
-
-  train_data = (train_data.map(process_images).shuffle(buffer_size=train_data_size).batch(batch_size=32, drop_remainder=True))
-  validation_data = (validation_data.map(process_images).shuffle(buffer_size=train_data_size).batch(batch_size=32, drop_remainder=True))
-
-  #End of Image Processing
+def AlexNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3, depth=20):
 
   #Model-Build
-  model = Sequential()
+  inputs = Input(shape=input_shape)
 
-  model.add(Conv2D(filters=96, input_shape=(227,227,3), kernel_size=(11,11), strides=(4,4), padding='same'))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
-  model.add(MaxPool2D(pool_size=(2,2), strides=(2,2), padding='same'))
+  x = Conv2D(96, (11, 11), activation='relu', padding='same')(inputs)
+  x = MaxPooling2D((2, 2), strides=(2, 2))(x)
 
-  model.add(Conv2D(filters=256, kernel_size=(5, 5), strides=(1,1), padding='same'))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
-  model.add(MaxPool2D(pool_size=(2,2), strides=(2,2), padding='same'))
+  x = Conv2D(256, (5, 5), activation='relu', padding='same')(x)
+  x = MaxPooling2D((2, 2), strides=(2, 2))(x)
 
-  model.add(Conv2D(filters=384, kernel_size=(3,3), strides=(1,1), padding='same'))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
+  x = Conv2D(384, (3, 3), activation='relu', padding='same')(x)
+  x = Conv2D(384, (3, 3), activation='relu', padding='same')(x)
+  x = Conv2D(256, (3, 3), activation='relu', padding='same')(x)
+  x = MaxPooling2D((2, 2), strides=(2, 2))(x)
 
-  model.add(Conv2D(filters=384, kernel_size=(3,3), strides=(1,1), padding='same'))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
+  y = Flatten()(x)
+  y = Dense(4096, activation='relu')(y)
+  y = Dropout(0.4)(y)
+  y = Dense(4096, activation='relu')(y)
+  y = Dropout(0.4)(y)
+  y = Dense(1000, activation='relu')(y)
+  y = Dropout(0.4)(y)
+  outputs = Dense(classes, activation='softmax')(y)
 
-  model.add(Conv2D(filters=256, kernel_size=(3,3), strides=(1,1), padding='same'))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
-  model.add(MaxPool2D(pool_size=(2,2), strides=(2,2), padding='same'))
-
-  model.add(Flatten())
-  model.add(Dense(4096, input_shape=(32,32,3,)))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
-  model.add(Dropout(0.4))
-
-  model.add(Dense(4096))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
-  model.add(Dropout(0.4))
-
-  model.add(Dense(1000))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
-  model.add(Dropout(0.4))
-
-  model.add(Dense(10))
-  model.add(BatchNormalization())
-  model.add(Activation('softmax'))
-
+  model = Model(inputs=inputs, outputs=outputs)
   model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
-
-  model.fit(train_data, epochs=epochs, validation_data=validation_data, validation_freq=validation_freq, batch_size=batch_size)
-
+  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
   model.save('AlexNet.model')
 
-#VGG16 Model
-def VGG16(train_data, validation_data, epochs, validation_freq, batch_size):
+#VGG19 Model
+def VGG19(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3, depth=20):
 
-  #Image Processing
-  def process_images(image, label):
-    #Resize
-    image = tf.image.per_image_standardization(image)
-    #Resize
-    image = tf.image.resize(image, (227,227))
-    return image, label
+  inputs = Input(shape=input_shape)
 
-  train_data_size = tf.data.experimental.cardinality(train_data).numpy()
-  validation_data_size = tf.data.experimental.cardinality(validation_data).numpy()
+  x = Conv2D(64, (3, 3), activation='relu', padding='same')(inputs)
+  x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
+  x = MaxPooling2D((2, 2), strides=(2, 2))(x)
 
-  train_data = (train_data.map(process_images).shuffle(buffer_size=train_data_size).batch(batch_size=32, drop_remainder=True))
-  validation_data = (validation_data.map(process_images).shuffle(buffer_size=train_data_size).batch(batch_size=32, drop_remainder=True))
+    # Block 2
+  x = Conv2D(128, (3, 3), activation='relu', padding='same')(x)
+  x = Conv2D(128, (3, 3), activation='relu', padding='same')(x)
+  x = MaxPooling2D((2, 2), strides=(2, 2))(x)
 
-  #End of Image Processing
+    # Block 3
+  x = Conv2D(256, (3, 3), activation='relu', padding='same')(x)
+  x = Conv2D(256, (3, 3), activation='relu', padding='same')(x)
+  x = Conv2D(256, (3, 3), activation='relu', padding='same')(x)
+  x = Conv2D(256, (3, 3), activation='relu', padding='same')(x)
+  x = MaxPooling2D((2, 2), strides=(2, 2))(x)
 
-  #Model-Build
-  model = Sequential()
-  model.add(Conv2D(input_shape=(224, 224, 3), filters=64, kernel_size=(3, 3), padding='same'))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
-  model.add(Conv2D(filters=64, kernel_size=(3,3), padding='same'))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
-  model.add(MaxPool2D(pool_size=(2, 2), strides=(2, 2)))
+    # Block 4
+  x = Conv2D(512, (3, 3), activation='relu', padding='same')(x)
+  x = Conv2D(512, (3, 3), activation='relu', padding='same')(x)
+  x = Conv2D(512, (3, 3), activation='relu', padding='same')(x)
+  x = Conv2D(512, (3, 3), activation='relu', padding='same')(x)
+  x = MaxPooling2D((2, 2), strides=(2, 2))(x)
 
-  model.add(Conv2D(filters=128, kernel_size=(3,3), padding='same'))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
-  model.add(Conv2D(filters=128, kernel_size=(3,3), padding='same'))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
-  model.add(MaxPool2D(pool_size=(2, 2), strides=(2, 2)))
+    # Block 5
+  x = Conv2D(512, (3, 3), activation='relu', padding='same')(x)
+  x = Conv2D(512, (3, 3), activation='relu', padding='same')(x)
+  x = Conv2D(512, (3, 3), activation='relu', padding='same')(x)
+  x = Conv2D(512, (3, 3), activation='relu', padding='same')(x)
+  x = MaxPooling2D((2, 2), strides=(2, 2))(x)
 
-  model.add(Conv2D(filters=256, kernel_size=(3,3), padding='same'))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
-  model.add(Conv2D(filters=256, kernel_size=(3,3), padding='same'))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
-  model.add(Conv2D(filters=256, kernel_size=(3,3), padding='same'))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
-  model.add(MaxPool2D(pool_size=(2, 2), strides=(2, 2)))
+  y = Flatten()(x)
+  y = Dense(4096, activation='relu')(y)
+  y = Dense(4096, activation='relu')(y)
+  outputs = Dense(classes, activation='softmax')(y)
 
-  model.add(Conv2D(filters=512, kernel_size=(3,3), padding='same'))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
-  model.add(Conv2D(filters=512, kernel_size=(3,3), padding='same'))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
-  model.add(Conv2D(filters=512, kernel_size=(3,3), padding='same'))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
-  model.add(MaxPool2D(pool_size=(2, 2), strides=(2, 2)))
-
-  model.add(Conv2D(filters=512, kernel_size=(3,3), padding='same'))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
-  model.add(Conv2D(filters=512, kernel_size=(3,3), padding='same'))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
-  model.add(Conv2D(filters=512, kernel_size=(3,3), padding='same'))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
-  model.add(MaxPool2D(pool_size=(2, 2), strides=(2, 2)))
-
-  model.add(Flatten())
-  model.add(Dense(units=4096))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
-  model.add(Dense(units=4096))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
-  model.add(Dense(units=2, activation='softmax'))
-  model.add(BatchNormalization())
-  model.add(Activation('softmax'))
-
+  model = Model(inputs=inputs, outputs=outputs)
   model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
+  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
+  model.save('VGG19.model')
 
-  model.fit(train_data, epochs=epochs, validation_data=validation_data, validation_freq=validation_freq, batch_size=batch_size)
+#VGG16 Model
+def VGG16(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3, depth=20):
 
+  inputs = Input(shape=input_shape)
+
+  x = Conv2D(64, (3, 3),activation='relu',padding='same')(inputs)
+  x = Conv2D(64, (3, 3),activation='relu',padding='same')(x)
+  x = MaxPooling2D((2, 2), strides=(2, 2))(x)
+
+  x = Conv2D(128, (3, 3),activation='relu',padding='same')(x)
+  x = Conv2D(128, (3, 3),activation='relu',padding='same')(x)
+  x = MaxPooling2D((2, 2), strides=(2, 2))(x)
+
+  x = Conv2D(256, (3, 3),activation='relu',padding='same')(x)
+  x = Conv2D(256, (3, 3),activation='relu',padding='same')(x)
+  x = Conv2D(256, (3, 3),activation='relu',padding='same')(x)
+  x = MaxPooling2D((2, 2), strides=(2, 2))(x)
+
+  x = Conv2D(512, (3, 3),activation='relu',padding='same')(x)
+  x = Conv2D(512, (3, 3),activation='relu',padding='same')(x)
+  x = Conv2D(512, (3, 3),activation='relu',padding='same')(x)
+  x = MaxPooling2D((2, 2), strides=(2, 2))(x)
+
+  x = Conv2D(512, (3, 3),activation='relu',padding='same')(x)
+  x = Conv2D(512, (3, 3),activation='relu',padding='same')(x)
+  x = Conv2D(512, (3, 3),activation='relu',padding='same')(x)
+  x = MaxPooling2D((2, 2), strides=(2, 2))(x)
+
+  y = Flatten()(x)
+  y = Dense(4096, activation='relu')(y)
+  y = Dense(4096, activation='relu')(y)
+  outputs = Dense(classes, activation='softmax')(y)
+
+  # Instantiate model.
+  model = Model(inputs=inputs, outputs=outputs)
+  model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
+  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
   model.save('VGG16.model')
+
+#ResNet_1 Model
+def ResNet_1(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3, depth=20):
+    
+  def resnet_layer(inputs,num_filters=16,kernel_size=3,strides=1,activation='relu',batch_normalization=True,conv_first=True):
+  
+    conv = Conv2D(num_filters,kernel_size=kernel_size,strides=strides,padding='same',kernel_initializer='he_normal')
+
+    x = inputs
+    if conv_first:
+        x = conv(x)
+        if batch_normalization:
+            x = BatchNormalization()(x)
+        if activation is not None:
+            x = Activation(activation)(x)
+    else:
+        if batch_normalization:
+            x = BatchNormalization()(x)
+        if activation is not None:
+            x = Activation(activation)(x)
+        x = conv(x)
+    return x
+
+  if (depth - 2) % 6 != 0:
+    raise ValueError('depth should be 6n+2 (eg 20, 32, 44 in [a])')
+
+  num_filters = 16
+  num_res_blocks = int((depth - 2) / 6)
+
+  inputs = Input(shape=input_shape)
+  x = resnet_layer(inputs=inputs)
+
+  for stack in range(3):
+    for res_block in range(num_res_blocks):
+      strides = 1
+
+      if stack > 0 and res_block == 0:  
+        strides = 2
+      y = resnet_layer(inputs=x,num_filters=num_filters,strides=strides)
+      y = resnet_layer(inputs=y,num_filters=num_filters,activation=None)
+      x = resnet_layer(inputs=x,num_filters=num_filters,kernel_size=1,strides=strides,activation=None,batch_normalization=False)
+      x = add([x, y])
+      x = Activation('relu')(x)
+    num_filters *= 2
+
+  x = AveragePooling2D(pool_size=8)(x)
+  y = Flatten()(x)
+  outputs = Dense(classes,
+                  activation='softmax',
+                  kernel_initializer='he_normal')(y)
+
+  model = Model(inputs=inputs, outputs=outputs)
+  model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
+  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
+  model.save('ResNet_1.model')

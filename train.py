@@ -3,30 +3,19 @@ from tensorflow.keras.datasets import cifar10
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
-from library import AlexNet
-from library import VGG16
-
-#GPU Init
-
-gpus = tf.config.experimental.list_physical_devices('GPU')
-if gpus:
-  try:
-    for gpu in gpus:
-      tf.config.experimental.set_memory_growth(gpu, True)
-  except RuntimeError as e:
-    print(e)
-CUDA_VISIBLE_DEVICES=1
+from library import AlexNet, VGG19, VGG16, ResNet_1
 
 #DataSet
-(train_images, train_labels), (test_images, test_labels) = cifar10.load_data()
-CLASS_NAMES= ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+(x_train, y_train), (x_test, y_test) = cifar10.load_data()
 
-validation_images, validation_labels = train_images[:5000], train_labels[:5000]
-train_images, train_labels = train_images[5000:], train_labels[5000:]
+x = x_train.astype("uint8")
 
-train_data = tf.data.Dataset.from_tensor_slices((train_images, train_labels))
-validation_data = tf.data.Dataset.from_tensor_slices((validation_images, validation_labels))
+#model_name(x_train, y_train, input_shape, classes, batch_size, epochs, depth/optional)
 
-#AlexNet(train_data, validation_data, 1, 1, 32)
+#AlexNet(x_train, y_train)
 
-#VGG16(train_data, validation_data, 1, 1, 32)
+#VGG16(x_train, y_train)
+
+#VGG19(x_train, y_train)
+
+#ResNet_1(x_train, y_train)
