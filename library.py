@@ -1,9 +1,13 @@
 #Libraries used
 from keras.models import Sequential, Model
 from keras import layers
-from keras.layers import Dense, Conv2D, MaxPooling2D , Flatten, add
+from keras import backend as K
+from keras.layers import Layer
+from keras.layers import Dense, Conv2D, MaxPooling2D , Flatten, add, concatenate, merge, Convolution2D
 from keras.layers import Dropout, BatchNormalization, Activation, ZeroPadding2D, Concatenate, Input 
-from keras.layers import SeparableConv2D, GlobalAveragePooling2D, AveragePooling2D
+from keras.layers import SeparableConv2D, GlobalAveragePooling2D, AveragePooling2D, UpSampling2D, LeakyReLU, GlobalMaxPooling2D
+from keras.layers.core import Activation, Reshape
+from layers import resnet_layer, fire_module
 import tensorflow as tf
 
 
@@ -129,25 +133,6 @@ def VGG16(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, ep
 
 #ResNet_1 Model
 def ResNet_1(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3, depth=20):
-    
-  def resnet_layer(inputs,num_filters=16,kernel_size=3,strides=1,activation='relu',batch_normalization=True,conv_first=True):
-  
-    conv = Conv2D(num_filters,kernel_size=kernel_size,strides=strides,padding='same',kernel_initializer='he_normal')
-
-    x = inputs
-    if conv_first:
-        x = conv(x)
-        if batch_normalization:
-            x = BatchNormalization()(x)
-        if activation is not None:
-            x = Activation(activation)(x)
-    else:
-        if batch_normalization:
-            x = BatchNormalization()(x)
-        if activation is not None:
-            x = Activation(activation)(x)
-        x = conv(x)
-    return x
 
   if (depth - 2) % 6 != 0:
     raise ValueError('depth should be 6n+2 (eg 20, 32, 44 in [a])')
@@ -181,3 +166,103 @@ def ResNet_1(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32,
   model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
   model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
   model.save('ResNet_1.model')
+
+#ResNet_2 Model
+def ResNet_2(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3, depth=20):
+
+  if (depth - 2) % 9 != 0:
+    raise ValueError('depth should be 9n+2 (eg 56 or 110 in [b])')
+  num_filters_in = 16
+  num_res_blocks = int((depth - 2) / 9)
+
+  inputs = Input(shape=input_shape)
+  x = resnet_layer(inputs=inputs,
+                    num_filters=num_filters_in,
+                    conv_first=True)
+
+  for stage in range(3):
+      for res_block in range(num_res_blocks):
+          activation = 'relu'
+          batch_normalization = True
+          strides = 1
+          if stage == 0:
+              num_filters_out = num_filters_in * 4
+              if res_block == 0:
+                  activation = None
+                  batch_normalization = False
+          else:
+              num_filters_out = num_filters_in * 2
+              if res_block == 0:
+                  strides = 2
+
+          y = resnet_layer(inputs=x,
+                            num_filters=num_filters_in,
+                            kernel_size=1,
+                            strides=strides,
+                            activation=activation,
+                            batch_normalization=batch_normalization,
+                            conv_first=False)
+          y = resnet_layer(inputs=y,
+                            num_filters=num_filters_in,
+                            conv_first=False)
+          y = resnet_layer(inputs=y,
+                            num_filters=num_filters_out,
+                            kernel_size=1,
+                            conv_first=False)
+          if res_block == 0:
+
+              x = resnet_layer(inputs=x,
+                                num_filters=num_filters_out,
+                                kernel_size=1,
+                                strides=strides,
+                                activation=None,
+                                batch_normalization=False)
+          x = add([x, y])
+
+      num_filters_in = num_filters_out
+
+  x = BatchNormalization()(x)
+  x = Activation('relu')(x)
+  x = AveragePooling2D(pool_size=8)(x)
+  y = Flatten()(x)
+  outputs = Dense(classes,activation='softmax',kernel_initializer='he_normal')(y)
+
+  model = Model(inputs=inputs, outputs=outputs)
+  model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
+  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
+  model.save('ResNet_2.model')
+
+#SqueezeNet Model
+def SqueezeNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3, depth=20):
+
+  inputs = Input(shape=input_shape)
+  x = Convolution2D(64, (3, 3), strides=(2, 2), padding='valid', name='conv1')(inputs)
+  x = Activation('relu', name='relu_conv1')(x)
+  x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), name='pool1')(x)
+  
+  x = fire_module(x, fire_id=2, squeeze=16, expand=64)
+  x = fire_module(x, fire_id=3, squeeze=16, expand=64)
+  x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), name='pool3')(x)
+  
+  x = fire_module(x, fire_id=4, squeeze=32, expand=128)
+  x = fire_module(x, fire_id=5, squeeze=32, expand=128)
+  x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), name='pool5')(x)
+  
+  x = fire_module(x, fire_id=6, squeeze=48, expand=192)
+  x = fire_module(x, fire_id=7, squeeze=48, expand=192)
+  x = fire_module(x, fire_id=8, squeeze=64, expand=256)
+  x = fire_module(x, fire_id=9, squeeze=64, expand=256)
+  x = Dropout(0.5, name='drop9')(x)
+  
+  x = Convolution2D(classes, (1, 1), padding='valid', name='conv10')(x)
+  x = Activation('relu', name='relu_conv10')(x)
+  x = GlobalAveragePooling2D()(x)
+  x = Flatten()(x)
+  x = Activation('softmax', name='loss')(x)
+  x = Flatten()(x)
+  
+  model = Model(inputs, x)
+
+  model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
+  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
+  model.save('SqueezeNet.model')
