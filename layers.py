@@ -8,7 +8,6 @@ from keras.layers import SeparableConv2D, GlobalAveragePooling2D, AveragePooling
 from keras.layers.core import Activation, Reshape
 import tensorflow as tf
 import numpy as np
-from keras.layers.core import Layer, Lambda
 from tensorflow import keras
 
 def resnet_layer(inputs,num_filters=16,kernel_size=3,strides=1,activation='relu',batch_normalization=True,conv_first=True):
@@ -59,3 +58,9 @@ def Inception_block(input_layer, f1, f2_conv1, f2_conv3, f3_conv1, f3_conv5, f4)
   output_layer = concatenate([path1, path2, path3, path4], axis = -1)
 
   return output_layer
+
+def conv_block_nf(x, filters):
+    x = Conv2D(filters=filters, kernel_size=(3, 3), padding="same",
+               kernel_initializer="he_normal")(x)
+    x = Activation("relu")(x)
+    return x

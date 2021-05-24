@@ -3,11 +3,11 @@ from keras.models import Sequential, Model
 from keras import layers
 from keras import backend as K
 from keras.layers import Layer
-from keras.layers import Dense, Conv2D, MaxPooling2D , Flatten, add, concatenate, merge, Convolution2D
+from keras.layers import Dense, Conv2D, MaxPooling2D, Flatten, add, concatenate, merge, Convolution2D
 from keras.layers import Dropout, BatchNormalization, Activation, ZeroPadding2D, Concatenate, Input 
 from keras.layers import SeparableConv2D, GlobalAveragePooling2D, AveragePooling2D, UpSampling2D, LeakyReLU, GlobalMaxPooling2D
 from keras.layers.core import Activation, Reshape
-from layers import resnet_layer, fire_module, Inception_block
+from layers import resnet_layer, fire_module, Inception_block, conv_block_nf
 import tensorflow as tf
 from keras.regularizers import l2
 from keras.optimizers import SGD
@@ -272,7 +272,7 @@ def SqueezeNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=3
   model.save('SqueezeNet.model')
 
 #GoogleNet Model
-def GoogleNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3, depth=20):
+def GoogleNet(x_train, y_train, input_shape=[244,244,3], classes=10, batch_size=32, epochs=3, depth=20):
 
   # input layer 
   input_layer = Input(shape=input_shape)
@@ -360,3 +360,88 @@ def GoogleNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32
   model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
   model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
   model.save('GoogleNet.model')
+
+#ZFNet
+def ZFNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3, depth=20):
+
+  #Model-Build
+  inputs = Input(shape=input_shape)
+
+  x = Conv2D(96, (7, 7), strides=(2, 2), name='conv1')(inputs)
+  x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='same', name='pool1')(x)
+  x = BatchNormalization(axis=3, name='bn_conv1')(x)
+
+  x = Conv2D(256, (5, 5), strides=(4, 4), name='conv2')(x)
+  x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='same', name='pool2')(x)
+  x = BatchNormalization(axis=3, name='bn_conv2')(x)
+
+  x = Conv2D(512, (3, 3), strides=(1, 1), padding='same', name='conv3')(x)
+  x = Conv2D(1024, (3, 3), strides=(1, 1), padding='same', name='conv4')(x)
+  x = Conv2D(512, (3, 3), strides=(1, 1), padding='same', name='conv5')(x)
+  x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='same', name='pool3')(x)
+
+  y = Dense(4096)(x)
+  y = Dense(4096)(x)
+  y = Dense(classes)(x)
+  outputs = Activation('softmax')(x)
+
+  model = Model(inputs=inputs, outputs=outputs)
+  model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
+  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
+  model.save('ZFNet.model')
+
+#NFNet_F2
+def NFNet_F2(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3, depth=20):
+
+  #Model-Build
+  inputs = Input(shape=input_shape)
+
+  for _ in range(2):
+    x = conv_block_nf(inputs, 32)
+  x = MaxPooling2D(pool_size=(2, 2))(x)
+
+  for _ in range(2):
+    x = conv_block_nf(inputs, 64)
+  x = MaxPooling2D(pool_size=(2, 2))(x)
+
+  x = GlobalAveragePooling2D()(x)
+  outputs = Dense(5, activation="softmax")(x)
+
+  model = Model(inputs=inputs, outputs=outputs)
+  model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
+  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
+  model.save('NFNet_F2.model')
+
+#ColorNet
+def ColorNet(x_train, y_train, input_shape=[125,125,3], classes=10, batch_size=32, epochs=3, depth=20):
+
+  #Model-Build
+
+  inputs = Input(shape=input_shape)
+
+  x = Conv2D(16, (3, 3),activation="relu")(inputs)
+  x = Conv2D(16, (5, 5),activation="relu")(x)
+  x = MaxPooling2D(pool_size=(2, 2))(x)
+  x = Conv2D(32, (3, 3),activation="relu")(x)
+  x = Conv2D(32, (5, 5),activation="relu")(x)
+  x = MaxPooling2D(pool_size=(2, 2))(x)
+  x = BatchNormalization()(x)
+  x = Conv2D(64, (3, 3),activation="relu",kernel_initializer="he_uniform")(x)
+  x = Conv2D(64, (5, 5),activation="relu")(x)
+  x = MaxPooling2D(pool_size=(2, 2))(x)
+  x = BatchNormalization()(x)
+  x = Conv2D(128, (3, 3),activation="relu",kernel_initializer="he_uniform")(x)
+  x = Conv2D(128, (5, 5),activation="relu")(x)
+  x = MaxPooling2D(pool_size=(3, 3))(x)
+
+  y = Flatten()(x)
+  y = Dense(256,activation="relu",kernel_regularizer=l2(0.001),activity_regularizer=l2(0.001))(y)
+  y = Dropout(0.5)(y)
+  y = Dense(256,activation="relu",kernel_regularizer=l2(0.001),activity_regularizer=l2(0.001))(y)
+  y = Dropout(0.5)(y)
+  outputs = Dense(classes, activation="softmax")(y)
+
+  model = Model(inputs=inputs, outputs=outputs)
+  model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
+  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
+  model.save('ColorNet.model')
