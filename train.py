@@ -3,12 +3,12 @@ from tensorflow.keras.datasets import cifar10
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
-from library import AlexNet, VGG19, VGG16, ResNet_1, ResNet_2, SqueezeNet
+from library import AlexNet, VGG19, VGG16, ResNet_1, ResNet_2, SqueezeNet, GoogleNet
+import cv2
 
 #DataSet
 (x_train, y_train), (x_test, y_test) = cifar10.load_data()
-
-x = x_train.astype("uint8")
+x_train = np.array([cv2.resize(img, (244,244)) for img in x_train[:50000,:,:,:]])
 
 #model_name(x_train, y_train, input_shape, classes, batch_size, epochs, depth/optional)
 
@@ -22,4 +22,6 @@ x = x_train.astype("uint8")
 
 #ResNet_2(x_train, y_train)
 
-SqueezeNet(x_train, y_train)
+#SqueezeNet(x_train, y_train)
+
+GoogleNet(x_train, y_train, input_shape=[244,244,3])

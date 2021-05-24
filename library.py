@@ -7,8 +7,12 @@ from keras.layers import Dense, Conv2D, MaxPooling2D , Flatten, add, concatenate
 from keras.layers import Dropout, BatchNormalization, Activation, ZeroPadding2D, Concatenate, Input 
 from keras.layers import SeparableConv2D, GlobalAveragePooling2D, AveragePooling2D, UpSampling2D, LeakyReLU, GlobalMaxPooling2D
 from keras.layers.core import Activation, Reshape
-from layers import resnet_layer, fire_module
+from layers import resnet_layer, fire_module, Inception_block
 import tensorflow as tf
+from keras.regularizers import l2
+from keras.optimizers import SGD
+import numpy as np
+import cv2
 
 
 #Models
@@ -266,3 +270,93 @@ def SqueezeNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=3
   model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
   model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
   model.save('SqueezeNet.model')
+
+#GoogleNet Model
+def GoogleNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3, depth=20):
+
+  # input layer 
+  input_layer = Input(shape=input_shape)
+
+  # convolutional layer: filters = 64, kernel_size = (7,7), strides = 2
+  X = Conv2D(filters = 64, kernel_size = (7,7), strides = 2, padding = 'valid', activation = 'relu')(input_layer)
+
+  # max-pooling layer: pool_size = (3,3), strides = 2
+  X = MaxPooling2D(pool_size = (3,3), strides = 2)(X)
+
+  # convolutional layer: filters = 64, strides = 1
+  X = Conv2D(filters = 64, kernel_size = (1,1), strides = 1, padding = 'same', activation = 'relu')(X)
+
+  # convolutional layer: filters = 192, kernel_size = (3,3)
+  X = Conv2D(filters = 192, kernel_size = (3,3), padding = 'same', activation = 'relu')(X)
+
+  # max-pooling layer: pool_size = (3,3), strides = 2
+  X = MaxPooling2D(pool_size= (3,3), strides = 2)(X)
+
+  # 1st Inception block
+  X = Inception_block(X, f1 = 64, f2_conv1 = 96, f2_conv3 = 128, f3_conv1 = 16, f3_conv5 = 32, f4 = 32)
+
+  # 2nd Inception block
+  X = Inception_block(X, f1 = 128, f2_conv1 = 128, f2_conv3 = 192, f3_conv1 = 32, f3_conv5 = 96, f4 = 64)
+
+  # max-pooling layer: pool_size = (3,3), strides = 2
+  X = MaxPooling2D(pool_size= (3,3), strides = 2)(X)
+
+  # 3rd Inception block
+  X = Inception_block(X, f1 = 192, f2_conv1 = 96, f2_conv3 = 208, f3_conv1 = 16, f3_conv5 = 48, f4 = 64)
+
+  # Extra network 1:
+  X1 = AveragePooling2D(pool_size = (5,5), strides = 3)(X)
+  X1 = Conv2D(filters = 128, kernel_size = (1,1), padding = 'same', activation = 'relu')(X1)
+  X1 = Flatten()(X1)
+  X1 = Dense(1024, activation = 'relu')(X1)
+  X1 = Dropout(0.7)(X1)
+  X1 = Dense(5, activation = 'softmax')(X1)
+  X1 = Flatten()(X1)
+
+  # 4th Inception block
+  X = Inception_block(X, f1 = 160, f2_conv1 = 112, f2_conv3 = 224, f3_conv1 = 24, f3_conv5 = 64, f4 = 64)
+
+  # 5th Inception block
+  X = Inception_block(X, f1 = 128, f2_conv1 = 128, f2_conv3 = 256, f3_conv1 = 24, f3_conv5 = 64, f4 = 64)
+
+  # 6th Inception block
+  X = Inception_block(X, f1 = 112, f2_conv1 = 144, f2_conv3 = 288, f3_conv1 = 32, f3_conv5 = 64, f4 = 64)
+
+  # Extra network 2:
+  X2 = AveragePooling2D(pool_size = (5,5), strides = 3)(X)
+  X2 = Conv2D(filters = 128, kernel_size = (1,1), padding = 'same', activation = 'relu')(X2)
+  X2 = Flatten()(X2)
+  X2 = Dense(1024, activation = 'relu')(X2)
+  X2 = Dropout(0.7)(X2)
+  X2 = Dense(1000, activation = 'softmax')(X2)
+  X2 = Flatten()(X2)
+  
+  # 7th Inception block
+  X = Inception_block(X, f1 = 256, f2_conv1 = 160, f2_conv3 = 320, f3_conv1 = 32, 
+                      f3_conv5 = 128, f4 = 128)
+
+  # max-pooling layer: pool_size = (3,3), strides = 2
+  X = MaxPooling2D(pool_size = (3,3), strides = 2)(X)
+
+  # 8th Inception block
+  X = Inception_block(X, f1 = 256, f2_conv1 = 160, f2_conv3 = 320, f3_conv1 = 32, f3_conv5 = 128, f4 = 128)
+
+  # 9th Inception block
+  X = Inception_block(X, f1 = 384, f2_conv1 = 192, f2_conv3 = 384, f3_conv1 = 48, f3_conv5 = 128, f4 = 128)
+
+  # Global Average pooling layer 
+  X = GlobalAveragePooling2D(name = 'GAPL')(X)
+
+  # Dropoutlayer 
+  X = Dropout(0.4)(X)
+
+  # output layer 
+  X = Dense(classes, activation = 'softmax')(X)
+  X = Flatten()(X)
+
+  # model
+  model = Model(input_layer, [X, X1, X2])
+
+  model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
+  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
+  model.save('GoogleNet.model')
