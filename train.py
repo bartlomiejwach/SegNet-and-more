@@ -5,8 +5,9 @@ import tensorflow as tf
 import numpy
 from keras.utils import np_utils
 from library import AlexNet, VGG19, VGG16, ResNet_1, ResNet_2, SqueezeNet, GoogleNet, ZFNet, NFNet_F2, ColorNet, WideResNet
-from library import LSTM_Net, LSTM_big_Net
+from library import LSTM_Net_text, LSTM_big_Net_text, LSTM_Net_time_series
 import cv2
+
 
 
 #DataSet for CNNs
@@ -38,7 +39,8 @@ import cv2
 #WideResNet(x_train, y_train)
 
 #Text Data for LSTM
-filename = "datasets\wonderland.txt"
+"""
+filename = "datasets/wonderland.txt"
 raw_text = open(filename, 'r', encoding='utf-8').read()
 raw_text = raw_text.lower()
 chars = sorted(list(set(raw_text)))
@@ -59,7 +61,10 @@ X = numpy.reshape(dataX, (n_patterns, seq_length, 1))
 x_train = X / float(n_vocab)
 # one hot encode the output variable
 y_train = np_utils.to_categorical(dataY)
+"""
 
-#LSTM_Net(x_train, y_train)
+#LSTM_Net_text(x_train, y_train)
 
-#LSTM_big_Net(x_train, y_train)
+#LSTM_big_Net_text(x_train, y_train)
+
+#LSTM_Net_time_series("datasets/airline.csv", 1)
