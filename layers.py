@@ -2,13 +2,18 @@ from keras.models import Sequential, Model
 from keras import layers
 from keras import backend as K
 from keras.layers import Layer
-from keras.layers import Dense, Conv2D, MaxPooling2D , Flatten, add, concatenate
+from keras.layers import Dense, Conv2D, MaxPooling2D , Flatten, add, concatenate, DepthwiseConv2D
 from keras.layers import Dropout, BatchNormalization, Activation, ZeroPadding2D, Concatenate, Input 
 from keras.layers import SeparableConv2D, GlobalAveragePooling2D, AveragePooling2D, UpSampling2D, LeakyReLU
-from keras.layers.core import Activation, Reshape
+from keras.layers.core import Activation, Reshape, Lambda
 import tensorflow as tf
+from keras.activations import softmax
 import numpy as np
 from tensorflow import keras
+from keras.regularizers import l2
+import numpy as np
+import math
+
 
 def resnet_layer(inputs,num_filters=16,kernel_size=3,strides=1,activation='relu',batch_normalization=True,conv_first=True):
   

@@ -3,16 +3,20 @@ from keras.models import Sequential, Model
 from keras import layers
 from keras import backend as K
 from keras.layers import Layer
-from keras.layers import Dense, Conv2D, MaxPooling2D, Flatten, add, concatenate, merge, Convolution2D
-from keras.layers import Dropout, BatchNormalization, Activation, ZeroPadding2D, Concatenate, Input 
+from keras.layers import Dense, Conv2D, MaxPooling2D, Flatten, add, concatenate, merge, Convolution2D, Dropout, LSTM
+from keras.layers import Dropout, BatchNormalization, Activation, ZeroPadding2D, Concatenate, Input , Lambda
 from keras.layers import SeparableConv2D, GlobalAveragePooling2D, AveragePooling2D, UpSampling2D, LeakyReLU, GlobalMaxPooling2D
 from keras.layers.core import Activation, Reshape
 from layers import resnet_layer, fire_module, Inception_block, conv_block_nf, create_wide_residual_network
 import tensorflow as tf
 from keras.regularizers import l2
 from keras.optimizers import SGD
-import numpy as np
+import numpy
 import cv2
+from sklearn.preprocessing import MinMaxScaler
+from pandas import read_csv
+import requests
+import io
 
 
 #Models
@@ -447,7 +451,7 @@ def ColorNet(x_train, y_train, input_shape=[125,125,3], classes=10, batch_size=3
   model.save('ColorNet.model')
 
 #WideResNet
-def WideResNet(x_train, y_train, input_shape=[125,125,3], classes=10, batch_size=32, epochs=3, depth=28):
+def WideResNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3, depth=28):
 
   #Model-Build
 
@@ -460,3 +464,67 @@ def WideResNet(x_train, y_train, input_shape=[125,125,3], classes=10, batch_size
   model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
   model.save('WideResNet.model')
 
+#LSTM_Net_text
+def LSTM_Net_text(x_train, y_train, batch_size=128, epochs=3):
+
+  model = Sequential()
+  model.add(LSTM(256, input_shape=(x_train.shape[1], x_train.shape[2])))
+  model.add(Dropout(0.2))
+  model.add(Dense(y_train.shape[1], activation='softmax'))
+
+  model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
+  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
+  model.save('LSTM_Net_text.model')
+
+#LSTM_big_Net_text
+def LSTM_big_Net_text(x_train, y_train, batch_size=128, epochs=3):
+
+  model = Sequential()
+  model.add(LSTM(256, input_shape=(x_train.shape[1], x_train.shape[2]), return_sequences=True))
+  model.add(Dropout(0.2))
+  model.add(LSTM(256))
+  model.add(Dropout(0.2))
+  model.add(Dense(y_train.shape[1], activation='softmax'))
+
+  model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
+  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
+  model.save('LSTM_big_Net_text.model')
+
+#LSTM_Net_time_series
+def LSTM_Net_time_series(filepath, time_steps=1, batch_size=1, epochs=3):
+
+  def create_dataset(dataset, time_steps=1):
+    dataX, dataY = [], []
+    for i in range(len(dataset)-time_steps-1):
+      a = dataset[i:(i+time_steps), 0]
+      dataX.append(a)
+      dataY.append(dataset[i + time_steps, 0])
+    return numpy.array(dataX), numpy.array(dataY)
+  # fix random seed for reproducibility
+  numpy.random.seed(7)
+  # load the dataset
+  dataframe = read_csv(filepath, usecols=[1], engine='python')
+  dataset = dataframe.values
+  dataset = dataset.astype('float32')
+  # normalize the dataset
+  scaler = MinMaxScaler(feature_range=(0, 1))
+  dataset = scaler.fit_transform(dataset)
+  # split into train and test sets
+  train_size = int(len(dataset) * 0.67)
+  test_size = len(dataset) - train_size
+  train, test = dataset[0:train_size,:], dataset[train_size:len(dataset),:]
+  # reshape into X=t and Y=t+1
+  time_steps = 1
+  x_train, y_train = create_dataset(train, time_steps)
+  testX, testY = create_dataset(test, time_steps)
+  # reshape input to be [samples, time steps, features]
+  x_train = numpy.reshape(x_train, (x_train.shape[0], 1, x_train.shape[1]))
+  testX = numpy.reshape(testX, (testX.shape[0], 1, testX.shape[1]))
+
+  model = Sequential()
+  model.add(LSTM(4, input_shape=(1, time_steps)))
+  model.add(Dense(1))
+
+  model.compile(loss='mean_squared_error',optimizer='adam',metrics=['accuracy'])
+  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
+  model.save('LSTM_Net_time_series.model')
