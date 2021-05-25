@@ -3,7 +3,7 @@ from tensorflow.keras.datasets import cifar10
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
-from library import AlexNet, VGG19, VGG16, ResNet_1, ResNet_2, SqueezeNet, GoogleNet, ZFNet, NFNet_F2, ColorNet
+from library import AlexNet, VGG19, VGG16, ResNet_1, ResNet_2, SqueezeNet, GoogleNet, ZFNet, NFNet_F2, ColorNet, WideResNet
 import cv2
 
 #DataSet
@@ -31,3 +31,5 @@ import cv2
 #NFNet_F2(x_train, y_train)
 
 #ColorNet(x_train, y_train)
+
+#WideResNet(x_train, y_train)

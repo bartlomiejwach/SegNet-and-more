@@ -7,7 +7,7 @@ from keras.layers import Dense, Conv2D, MaxPooling2D, Flatten, add, concatenate,
 from keras.layers import Dropout, BatchNormalization, Activation, ZeroPadding2D, Concatenate, Input 
 from keras.layers import SeparableConv2D, GlobalAveragePooling2D, AveragePooling2D, UpSampling2D, LeakyReLU, GlobalMaxPooling2D
 from keras.layers.core import Activation, Reshape
-from layers import resnet_layer, fire_module, Inception_block, conv_block_nf
+from layers import resnet_layer, fire_module, Inception_block, conv_block_nf, create_wide_residual_network
 import tensorflow as tf
 from keras.regularizers import l2
 from keras.optimizers import SGD
@@ -21,7 +21,7 @@ import cv2
 #model_name(x_train, y_train, input_shape, classes, batch_size, epochs, depth/optional)
 
 #AlexNet Model
-def AlexNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3, depth=20):
+def AlexNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3):
 
   #Model-Build
   inputs = Input(shape=input_shape)
@@ -52,7 +52,7 @@ def AlexNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, 
   model.save('AlexNet.model')
 
 #VGG19 Model
-def VGG19(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3, depth=20):
+def VGG19(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3):
 
   inputs = Input(shape=input_shape)
 
@@ -97,7 +97,7 @@ def VGG19(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, ep
   model.save('VGG19.model')
 
 #VGG16 Model
-def VGG16(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3, depth=20):
+def VGG16(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3):
 
   inputs = Input(shape=input_shape)
 
@@ -237,7 +237,7 @@ def ResNet_2(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32,
   model.save('ResNet_2.model')
 
 #SqueezeNet Model
-def SqueezeNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3, depth=20):
+def SqueezeNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3):
 
   inputs = Input(shape=input_shape)
   x = Convolution2D(64, (3, 3), strides=(2, 2), padding='valid', name='conv1')(inputs)
@@ -272,7 +272,7 @@ def SqueezeNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=3
   model.save('SqueezeNet.model')
 
 #GoogleNet Model
-def GoogleNet(x_train, y_train, input_shape=[244,244,3], classes=10, batch_size=32, epochs=3, depth=20):
+def GoogleNet(x_train, y_train, input_shape=[244,244,3], classes=10, batch_size=32, epochs=3):
 
   # input layer 
   input_layer = Input(shape=input_shape)
@@ -362,7 +362,7 @@ def GoogleNet(x_train, y_train, input_shape=[244,244,3], classes=10, batch_size=
   model.save('GoogleNet.model')
 
 #ZFNet
-def ZFNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3, depth=20):
+def ZFNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3):
 
   #Model-Build
   inputs = Input(shape=input_shape)
@@ -391,7 +391,7 @@ def ZFNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, ep
   model.save('ZFNet.model')
 
 #NFNet_F2
-def NFNet_F2(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3, depth=20):
+def NFNet_F2(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3):
 
   #Model-Build
   inputs = Input(shape=input_shape)
@@ -405,7 +405,7 @@ def NFNet_F2(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32,
   x = MaxPooling2D(pool_size=(2, 2))(x)
 
   x = GlobalAveragePooling2D()(x)
-  outputs = Dense(5, activation="softmax")(x)
+  outputs = Dense(classes, activation="softmax")(x)
 
   model = Model(inputs=inputs, outputs=outputs)
   model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
@@ -413,7 +413,7 @@ def NFNet_F2(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32,
   model.save('NFNet_F2.model')
 
 #ColorNet
-def ColorNet(x_train, y_train, input_shape=[125,125,3], classes=10, batch_size=32, epochs=3, depth=20):
+def ColorNet(x_train, y_train, input_shape=[125,125,3], classes=10, batch_size=32, epochs=3):
 
   #Model-Build
 
@@ -445,3 +445,18 @@ def ColorNet(x_train, y_train, input_shape=[125,125,3], classes=10, batch_size=3
   model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
   model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
   model.save('ColorNet.model')
+
+#WideResNet
+def WideResNet(x_train, y_train, input_shape=[125,125,3], classes=10, batch_size=32, epochs=3, depth=28):
+
+  #Model-Build
+
+  inputs = Input(shape=input_shape)
+
+  x = create_wide_residual_network(classes, inputs, depth)
+
+  model = Model(inputs=inputs, outputs=x)
+  model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
+  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
+  model.save('WideResNet.model')
+

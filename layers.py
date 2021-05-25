@@ -64,3 +64,118 @@ def conv_block_nf(x, filters):
                kernel_initializer="he_normal")(x)
     x = Activation("relu")(x)
     return x
+
+def __conv1_block(input):
+    x = Conv2D(16, (3, 3), padding='same')(input)
+
+    channel_axis = 1 if K.image_data_format() == 'channels_first' else -1
+
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+    return x
+
+
+def __conv2_block(input, k=1, dropout=0.0):
+    init = input
+
+    channel_axis = 1 if K.image_data_format() == 'channels_first' else -1
+
+    # Check if input number of filters is same as 16 * k, else create
+    # convolution2d for this input
+
+    init = Conv2D(16 * k, (1, 1), activation='linear', padding='same')(init)
+
+    x = Conv2D(16 * k, (3, 3), padding='same')(input)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+
+    if dropout > 0.0:
+        x = Dropout(dropout)(x)
+
+    x = Conv2D(16 * k, (3, 3), padding='same')(x)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+
+    m = add([init, x])
+    return m
+
+
+def __conv3_block(input, k=1, dropout=0.0):
+    init = input
+
+    channel_axis = 1 if K.image_data_format() == 'channels_first' else -1
+
+    # Check if input number of filters is same as 32 * k, else
+    # create convolution2d for this input
+
+    init = Conv2D(32 * k, (1, 1), activation='linear', padding='same')(init)
+
+    x = Conv2D(32 * k, (3, 3), padding='same')(input)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+
+    if dropout > 0.0:
+        x = Dropout(dropout)(x)
+
+    x = Conv2D(32 * k, (3, 3), padding='same')(x)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+
+    m = add([init, x])
+    return m
+
+
+def ___conv4_block(input, k=1, dropout=0.0):
+    init = input
+
+    channel_axis = 1  -1
+
+    # Check if input number of filters is same as 64 * k, else
+    # create convolution2d for this input
+
+    init = Conv2D(64 * k, (1, 1), activation='linear', padding='same')(init)
+
+    x = Conv2D(64 * k, (3, 3), padding='same')(input)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+
+    if dropout > 0.0:
+        x = Dropout(dropout)(x)
+
+    x = Conv2D(64 * k, (3, 3), padding='same')(x)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+
+    m = add([init, x])
+    return m
+
+
+def create_wide_residual_network(nb_classes, img_input, include_top=True, depth=28,
+                                   width=8, dropout=0.0, activation='softmax'):
+
+    N = (depth - 4) // 6
+
+    x = __conv1_block(img_input)
+    nb_conv = 4
+
+    for i in range(N):
+        x = __conv2_block(x, width, dropout)
+        nb_conv += 2
+
+    x = MaxPooling2D((2, 2))(x)
+
+    for i in range(N):
+        x = __conv3_block(x, width, dropout)
+        nb_conv += 2
+
+    x = MaxPooling2D((2, 2))(x)
+
+    for i in range(N):
+        x = ___conv4_block(x, width, dropout)
+        nb_conv += 2
+
+    if include_top:
+        x = GlobalAveragePooling2D()(x)
+        x = Dense(nb_classes, activation=activation)(x)
+
+    return x
