@@ -1,22 +1,16 @@
 #Libraries used
 from keras.models import Sequential, Model
-from keras import layers
-from keras import backend as K
-from keras.layers import Layer
-from keras.layers import Dense, Conv2D, MaxPooling2D, Flatten, add, concatenate, merge, Convolution2D, Dropout, LSTM
-from keras.layers import Dropout, BatchNormalization, Activation, ZeroPadding2D, Concatenate, Input , Lambda
-from keras.layers import SeparableConv2D, GlobalAveragePooling2D, AveragePooling2D, UpSampling2D, LeakyReLU, GlobalMaxPooling2D
+from keras.layers import Dense, Conv2D, MaxPooling2D, Flatten, add, Convolution2D, Dropout, LSTM
+from keras.layers import Dropout, BatchNormalization, Activation, Input
+from keras.layers import GlobalAveragePooling2D, AveragePooling2D
 from keras.layers.core import Activation, Reshape
 from layers import resnet_layer, fire_module, Inception_block, conv_block_nf, create_wide_residual_network
-import tensorflow as tf
+import pandas as pd
 from keras.regularizers import l2
-from keras.optimizers import SGD
 import numpy
-import cv2
+from keras.utils import np_utils
 from sklearn.preprocessing import MinMaxScaler
 from pandas import read_csv
-import requests
-import io
 
 
 #Models
@@ -465,7 +459,29 @@ def WideResNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=3
   model.save('WideResNet.model')
 
 #LSTM_Net_text
-def LSTM_Net_text(x_train, y_train, batch_size=128, epochs=3):
+def LSTM_Net_text(filepath, batch_size=128, epochs=3):
+
+  filename = filepath
+  raw_text = open(filename, 'r', encoding='utf-8').read()
+  raw_text = raw_text.lower()
+  chars = sorted(list(set(raw_text)))
+  char_to_int = dict((c, i) for i, c in enumerate(chars))
+  n_chars = len(raw_text)
+  n_vocab = len(chars)
+  seq_length = 100
+  dataX = []
+  dataY = []
+  for i in range(0, n_chars - seq_length, 1):
+    seq_in = raw_text[i:i + seq_length]
+    seq_out = raw_text[i + seq_length]
+    dataX.append([char_to_int[char] for char in seq_in])
+    dataY.append(char_to_int[seq_out])
+  n_patterns = len(dataX)
+  X = numpy.reshape(dataX, (n_patterns, seq_length, 1))
+  # normalize
+  x_train = X / float(n_vocab)
+  # one hot encode the output variable
+  y_train = np_utils.to_categorical(dataY)
 
   model = Sequential()
   model.add(LSTM(256, input_shape=(x_train.shape[1], x_train.shape[2])))
@@ -477,7 +493,29 @@ def LSTM_Net_text(x_train, y_train, batch_size=128, epochs=3):
   model.save('LSTM_Net_text.model')
 
 #LSTM_big_Net_text
-def LSTM_big_Net_text(x_train, y_train, batch_size=128, epochs=3):
+def LSTM_big_Net_text(filepath, batch_size=128, epochs=3):
+
+  filename = filepath
+  raw_text = open(filename, 'r', encoding='utf-8').read()
+  raw_text = raw_text.lower()
+  chars = sorted(list(set(raw_text)))
+  char_to_int = dict((c, i) for i, c in enumerate(chars))
+  n_chars = len(raw_text)
+  n_vocab = len(chars)
+  seq_length = 100
+  dataX = []
+  dataY = []
+  for i in range(0, n_chars - seq_length, 1):
+    seq_in = raw_text[i:i + seq_length]
+    seq_out = raw_text[i + seq_length]
+    dataX.append([char_to_int[char] for char in seq_in])
+    dataY.append(char_to_int[seq_out])
+  n_patterns = len(dataX)
+  X = numpy.reshape(dataX, (n_patterns, seq_length, 1))
+  # normalize
+  x_train = X / float(n_vocab)
+  # one hot encode the output variable
+  y_train = np_utils.to_categorical(dataY)
 
   model = Sequential()
   model.add(LSTM(256, input_shape=(x_train.shape[1], x_train.shape[2]), return_sequences=True))
@@ -528,3 +566,59 @@ def LSTM_Net_time_series(filepath, time_steps=1, batch_size=1, epochs=3):
   model.compile(loss='mean_squared_error',optimizer='adam',metrics=['accuracy'])
   model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
   model.save('LSTM_Net_time_series.model')
+
+def Stock_Net(filepath, batch_size=16, epochs=3):
+
+  def new_dataset(dataset, step_size):
+    data_X, data_Y = [], []
+    for i in range(len(dataset)-step_size-1):
+      a = dataset[i:(i+step_size), 0]
+      data_X.append(a)
+      data_Y.append(dataset[i + step_size, 0])
+    return numpy.array(data_X), numpy.array(data_Y)
+
+  numpy.random.seed(7)
+
+  # IMPORTING DATASET 
+  dataset = pd.read_csv(filepath, usecols=[1,2,3,4])
+  dataset = dataset.reindex(index = dataset.index[::-1])
+
+  # CREATING OWN INDEX FOR FLEXIBILITY
+  obs = numpy.arange(1, len(dataset) + 1, 1)
+
+  # TAKING DIFFERENT INDICATORS FOR PREDICTION
+  OHLC_avg = dataset.mean(axis = 1)
+  HLC_avg = dataset[['High', 'Low', 'Close']].mean(axis = 1)
+  close_val = dataset[['Close']]
+
+  # PREPARATION OF TIME SERIES DATASE
+  OHLC_avg = numpy.reshape(OHLC_avg.values, (len(OHLC_avg),1)) # 1664
+  scaler = MinMaxScaler(feature_range=(0, 1))
+  OHLC_avg = scaler.fit_transform(OHLC_avg)
+
+  # TRAIN-TEST SPLIT
+  train_OHLC = int(len(OHLC_avg) * 0.75)
+  test_OHLC = len(OHLC_avg) - train_OHLC
+  train_OHLC, test_OHLC = OHLC_avg[0:train_OHLC,:], OHLC_avg[train_OHLC:len(OHLC_avg),:]
+
+  # TIME-SERIES DATASET (FOR TIME T, VALUES FOR TIME T+1)
+  trainX, trainY = new_dataset(train_OHLC, 1)
+  testX, testY = new_dataset(test_OHLC, 1)
+
+  # RESHAPING TRAIN AND TEST DATA
+  trainX = numpy.reshape(trainX, (trainX.shape[0], 1, trainX.shape[1]))
+  testX = numpy.reshape(testX, (testX.shape[0], 1, testX.shape[1]))
+  step_size = 1
+
+  # LSTM MODEL
+  model = Sequential()
+  model.add(LSTM(32, input_shape=(1, step_size), return_sequences = True))
+  model.add(LSTM(16))
+  model.add(Dense(1))
+  model.add(Activation('linear'))
+
+  # MODEL COMPILING AND TRAINING
+  model.compile(loss='mean_squared_error', optimizer='adagrad') # Try SGD, adam, adagrad and compare!!!
+  model.fit(trainX, trainY, epochs=epochs, batch_size=batch_size, verbose=2)
+
+  model.save('Stock_Net.model')
