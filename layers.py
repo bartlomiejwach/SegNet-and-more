@@ -1,19 +1,12 @@
-from keras.models import Sequential, Model
-from keras import layers
+#####Custom layers and modules
+###Libraries used
 from keras import backend as K
-from keras.layers import Layer
-from keras.layers import Dense, Conv2D, MaxPooling2D , Flatten, add, concatenate, DepthwiseConv2D
-from keras.layers import Dropout, BatchNormalization, Activation, ZeroPadding2D, Concatenate, Input 
-from keras.layers import SeparableConv2D, GlobalAveragePooling2D, AveragePooling2D, UpSampling2D, LeakyReLU
-from keras.layers.core import Activation, Reshape, Lambda
-import tensorflow as tf
-from keras.activations import softmax
-import numpy as np
-from tensorflow import keras
-from keras.regularizers import l2
-import numpy as np
-import math
+from keras.layers import Dense, Conv2D, MaxPooling2D, add, concatenate
+from keras.layers import Dropout, BatchNormalization, Activation
+from keras.layers import GlobalAveragePooling2D
+from keras.layers.core import Activation
 
+###Modules defined
 
 def resnet_layer(inputs,num_filters=16,kernel_size=3,strides=1,activation='relu',batch_normalization=True,conv_first=True):
   
@@ -79,14 +72,10 @@ def __conv1_block(input):
     x = Activation('relu')(x)
     return x
 
-
 def __conv2_block(input, k=1, dropout=0.0):
     init = input
 
     channel_axis = 1 if K.image_data_format() == 'channels_first' else -1
-
-    # Check if input number of filters is same as 16 * k, else create
-    # convolution2d for this input
 
     init = Conv2D(16 * k, (1, 1), activation='linear', padding='same')(init)
 
@@ -104,14 +93,10 @@ def __conv2_block(input, k=1, dropout=0.0):
     m = add([init, x])
     return m
 
-
 def __conv3_block(input, k=1, dropout=0.0):
     init = input
 
     channel_axis = 1 if K.image_data_format() == 'channels_first' else -1
-
-    # Check if input number of filters is same as 32 * k, else
-    # create convolution2d for this input
 
     init = Conv2D(32 * k, (1, 1), activation='linear', padding='same')(init)
 
@@ -129,14 +114,10 @@ def __conv3_block(input, k=1, dropout=0.0):
     m = add([init, x])
     return m
 
-
 def ___conv4_block(input, k=1, dropout=0.0):
     init = input
 
     channel_axis = 1  -1
-
-    # Check if input number of filters is same as 64 * k, else
-    # create convolution2d for this input
 
     init = Conv2D(64 * k, (1, 1), activation='linear', padding='same')(init)
 
@@ -153,7 +134,6 @@ def ___conv4_block(input, k=1, dropout=0.0):
 
     m = add([init, x])
     return m
-
 
 def create_wide_residual_network(nb_classes, img_input, include_top=True, depth=28,
                                    width=8, dropout=0.0, activation='softmax'):
