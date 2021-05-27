@@ -1,9 +1,11 @@
 #Libraries used
 from keras.models import Sequential, Model
-from keras.layers import Dense, Conv2D, MaxPooling2D, Flatten, add, Convolution2D, Dropout, LSTM
-from keras.layers import Dropout, BatchNormalization, Activation, Input
-from keras.layers import GlobalAveragePooling2D, AveragePooling2D
+from keras.layers import Dense, Conv2D, MaxPooling2D, Flatten, add, Convolution2D, Dropout, LSTM, Permute
+from keras.layers import Dropout, BatchNormalization, Activation, Input, Lambda, Dot, Softmax
+from keras.layers import GlobalAveragePooling2D, AveragePooling2D, Bidirectional
 from keras.layers.core import Activation, Reshape
+import keras.layers.core as K
+from keras.activations import softmax
 from layers import resnet_layer, fire_module, Inception_block, conv_block_nf, create_wide_residual_network
 import pandas as pd
 from keras.regularizers import l2
@@ -11,6 +13,9 @@ import numpy
 from keras.utils import np_utils
 from sklearn.preprocessing import MinMaxScaler
 from pandas import read_csv
+from kapre.time_frequency import Melspectrogram, Spectrogram
+from kapre.utils import Normalization2D
+from tensorflow import squeeze
 
 
 #Models
@@ -622,3 +627,107 @@ def Stock_Net(filepath, batch_size=16, epochs=3):
   model.fit(trainX, trainY, epochs=epochs, batch_size=batch_size, verbose=2)
 
   model.save('Stock_Net.model')
+
+def RNN_Speech(x_train, y_train, classes, samplingrate=16000, inputLength=16000, epochs=3):
+
+  inputs = Input((inputLength,))
+
+  x = Reshape((1, -1))(inputs)
+
+  x = Melspectrogram(n_dft=1024, n_hop=128, input_shape=(1, inputLength),
+                      padding='same', sr=samplingrate, n_mels=80,
+                      fmin=40.0, fmax=samplingrate / 2, power_melgram=1.0,
+                      return_decibel_melgram=True, trainable_fb=False,
+                      trainable_kernel=False,
+                      name='mel_stft')(x)
+
+  x = Normalization2D(int_axis=0)(x)
+
+  # note that Melspectrogram puts the sequence in shape (batch_size, melDim, timeSteps, 1)
+  # we would rather have it the other way around for LSTMs
+
+  x = Permute((2, 1, 3))(x)
+
+  x = Conv2D(10, (5, 1), activation='relu', padding='same')(x)
+  x = BatchNormalization()(x)
+  x = Conv2D(1, (5, 1), activation='relu', padding='same')(x)
+  x = BatchNormalization()(x)
+
+  # x = Reshape((125, 80)) (x)
+  # keras.backend.squeeze(x, axis)
+  x = Lambda(lambda q: squeeze(q, -1), name='squeeze_last_dim')(x)
+
+  x = Bidirectional(LSTM(64, return_sequences=True))(
+      x)  # [b_s, seq_len, vec_dim]
+  x = Bidirectional(LSTM(64))(x)
+
+  x = Dense(64, activation='relu')(x)
+  x = Dense(32, activation='relu')(x)
+
+  output = Dense(classes, activation='softmax')(x)
+
+  model = Model(inputs=[inputs], outputs=[output], name='ConvSpeechModel')
+
+  model.compile(optimizer='adam', loss=['sparse_categorical_crossentropy'], metrics=['sparse_categorical_accuracy'])
+  model.fit(x_train, validation_data=y_train, epochs=epochs, use_multiprocessing=False, workers=4, verbose=2)
+
+  model.save('RNN_Speech.model')
+
+def Att_RNN_Speech(x_train, y_train, classes, samplingrate=16000, inputLength=16000, epochs=3):
+
+  inputs = Input((inputLength,), name='input')
+
+  x = Reshape((1, -1))(inputs)
+
+  m = Melspectrogram(n_dft=1024, n_hop=128, input_shape=(1, inputLength),
+                      padding='same', sr=samplingrate, n_mels=80,
+                      fmin=40.0, fmax=samplingrate / 2, power_melgram=1.0,
+                      return_decibel_melgram=True, trainable_fb=False,
+                      trainable_kernel=False,
+                      name='mel_stft')
+  m.trainable = False
+
+  x = m(x)
+
+  x = Normalization2D(int_axis=0, name='mel_stft_norm')(x)
+
+  # note that Melspectrogram puts the sequence in shape (batch_size, melDim, timeSteps, 1)
+  # we would rather have it the other way around for LSTMs
+
+  x = Permute((2, 1, 3))(x)
+
+  x = Conv2D(10, (5, 1), activation='relu', padding='same')(x)
+  x = BatchNormalization()(x)
+  x = Conv2D(1, (5, 1), activation='relu', padding='same')(x)
+  x = BatchNormalization()(x)
+
+  # x = Reshape((125, 80)) (x)
+  # keras.backend.squeeze(x, axis)
+  x = Lambda(lambda q: squeeze(q, -1), name='squeeze_last_dim')(x)
+
+  x = Bidirectional(LSTM(64, return_sequences=True)
+                      )(x)  # [b_s, seq_len, vec_dim]
+  x = Bidirectional(LSTM(64, return_sequences=True)
+                      )(x)  # [b_s, seq_len, vec_dim]
+
+  xFirst = Lambda(lambda q: q[:, -1])(x)  # [b_s, vec_dim]
+  query = Dense(128)(xFirst)
+
+  # dot product attention
+  attScores = Dot(axes=[1, 2])([query, x])
+  attScores = Softmax(name='attSoftmax')(attScores)  # [b_s, seq_len]
+
+  # rescale sequence
+  attVector = Dot(axes=[1, 1])([attScores, x])  # [b_s, vec_dim]
+
+  x = Dense(64, activation='relu')(attVector)
+  x = Dense(32)(x)
+
+  output = Dense(classes, activation='softmax', name='output')(x)
+
+  model = Model(inputs=[inputs], outputs=[output], name='ConvSpeechModel')
+
+  model.compile(optimizer='adam', loss=['sparse_categorical_crossentropy'], metrics=['sparse_categorical_accuracy'])
+  model.fit(x_train, validation_data=y_train, epochs=epochs, use_multiprocessing=False, workers=4, verbose=2)
+
+  model.save('Att_RNN_Speech.model')

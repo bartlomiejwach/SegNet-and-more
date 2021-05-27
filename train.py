@@ -2,8 +2,8 @@
 from tensorflow.keras.datasets import cifar10
 from keras.utils import to_categorical
 from library import AlexNet, VGG19, VGG16, ResNet_1, ResNet_2, SqueezeNet, GoogleNet, ZFNet, NFNet_F2, ColorNet, WideResNet
-from library import LSTM_Net_text, LSTM_big_Net_text, LSTM_Net_time_series, Stock_Net
-
+from library import LSTM_Net_text, LSTM_big_Net_text, LSTM_Net_time_series, Stock_Net, RNN_Speech, Att_RNN_Speech
+#from SpeechToText import SpeechGenerator, SpeechDownloader
 
 
 #DataSet for CNNs
@@ -42,3 +42,13 @@ from library import LSTM_Net_text, LSTM_big_Net_text, LSTM_Net_time_series, Stoc
 
 #Stock_Net('datasets/apple_share_price.csv')
 
+"""
+gscInfo, classes = SpeechDownloader.PrepareGoogleSpeechCmd(version=2, task='35word')
+x_train = SpeechGenerator.SpeechGen(gscInfo['train']['files'], gscInfo['train']['labels'], shuffle=True)
+# handle the fact that number of samples in validation may not be multiple of batch_size with shuffle=True
+y_train = SpeechGenerator.SpeechGen(gscInfo['val']['files'], gscInfo['val']['labels'], shuffle=True)
+"""
+
+#RNN_Speech(x_train, y_train, classes)
+
+#Att_RNN_Speech(x_train, y_train, classes)
