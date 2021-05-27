@@ -1,0 +1,7 @@
+python == 3.8.8
+keras == 2.4.3
+tensorflow == 2.2.0
+sklearn == 0.24.1
+kapre == 0.2.0
+pandas == 1.2.4
+numpy == 1.18.5
