@@ -258,7 +258,7 @@ def SqueezeNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=3
   model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
   model.save('SqueezeNet.model')
 
-def GoogleNet(x_train, y_train, input_shape=[244,244,3], classes=10, batch_size=32, epochs=3):
+def GoogleNet(x_train, y_train, input_shape=[244,244,3], classes=10, batch_size=244, epochs=3):
 
   input_layer = Input(shape=input_shape)
 
@@ -357,7 +357,7 @@ def NFNet_F2(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32,
   model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
   model.save('NFNet_F2.model')
 
-def ColorNet(x_train, y_train, input_shape=[125,125,3], classes=10, batch_size=32, epochs=3):
+def ColorNet(x_train, y_train, input_shape=[125,125,3], classes=10, batch_size=125, epochs=3):
 
   inputs = Input(shape=input_shape)
 
