@@ -542,7 +542,7 @@ def Stock_Net(filepath, batch_size=16, epochs=3):
 
   model.save('Stock_Net.model')
 
-def RNN_Speech(x_train, y_train, classes, samplingrate=16000, inputLength=16000, epochs=3):
+def RNN_Speech(x_train, y_train, classes, samplingrate=16000, inputLength=16000, batch_size=32, epochs=3):
 
   inputs = Input((inputLength,))
 
@@ -576,11 +576,11 @@ def RNN_Speech(x_train, y_train, classes, samplingrate=16000, inputLength=16000,
   model = Model(inputs=[inputs], outputs=[output])
 
   model.compile(optimizer='adam', loss=['sparse_categorical_crossentropy'], metrics=['sparse_categorical_accuracy'])
-  model.fit(x_train, validation_data=y_train, epochs=epochs, use_multiprocessing=False, workers=4, verbose=2)
+  model.fit(x_train, validation_data=y_train, epochs=epochs, batch_size=batch_size,  use_multiprocessing=False, workers=4, verbose=2)
 
   model.save('RNN_Speech.model')
 
-def Att_RNN_Speech(x_train, y_train, classes, samplingrate=16000, inputLength=16000, epochs=3):
+def Att_RNN_Speech(x_train, y_train, classes, samplingrate=16000, inputLength=16000, batch_size=32, epochs=3):
 
   inputs = Input((inputLength,))
 
@@ -625,6 +625,6 @@ def Att_RNN_Speech(x_train, y_train, classes, samplingrate=16000, inputLength=16
   model = Model(inputs=[inputs], outputs=[output])
 
   model.compile(optimizer='adam', loss=['sparse_categorical_crossentropy'], metrics=['sparse_categorical_accuracy'])
-  model.fit(x_train, validation_data=y_train, epochs=epochs, use_multiprocessing=False, workers=4, verbose=2)
+  model.fit(x_train, validation_data=y_train, epochs=epochs, batch_size=batch_size,  use_multiprocessing=False, workers=4, verbose=2)
 
   model.save('Att_RNN_Speech.model')
