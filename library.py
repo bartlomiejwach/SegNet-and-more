@@ -542,15 +542,15 @@ def Stock_Net(filepath, batch_size=16, epochs=3):
 
   model.save('Stock_Net.model')
 
-def RNN_Speech(x_train, y_train, classes, samplingrate=16000, inputLength=16000, batch_size=32, epochs=3):
+def RNN_Speech(x_train, y_train, classes, sampling_rate=16000, input_length=16000, batch_size=32, epochs=3):
 
-  inputs = Input((inputLength,))
+  inputs = Input((input_length,))
 
   x = Reshape((1, -1))(inputs)
 
-  x = Melspectrogram(n_dft=1024, n_hop=128, input_shape=(1, inputLength),
-                      padding='same', sr=samplingrate, n_mels=80,
-                      fmin=40.0, fmax=samplingrate / 2, power_melgram=1.0,
+  x = Melspectrogram(n_dft=1024, n_hop=128, input_shape=(1, input_length),
+                      padding='same', sr=sampling_rate, n_mels=80,
+                      fmin=40.0, fmax=sampling_rate / 2, power_melgram=1.0,
                       return_decibel_melgram=True, trainable_fb=False,
                       trainable_kernel=False)(x)
 
@@ -580,15 +580,15 @@ def RNN_Speech(x_train, y_train, classes, samplingrate=16000, inputLength=16000,
 
   model.save('RNN_Speech.model')
 
-def Att_RNN_Speech(x_train, y_train, classes, samplingrate=16000, inputLength=16000, batch_size=32, epochs=3):
+def Att_RNN_Speech(x_train, y_train, classes, sampling_rate=16000, input_length=16000, batch_size=32, epochs=3):
 
-  inputs = Input((inputLength,))
+  inputs = Input((input_length,))
 
   x = Reshape((1, -1))(inputs)
 
-  m = Melspectrogram(n_dft=1024, n_hop=128, input_shape=(1, inputLength),
-                      padding='same', sr=samplingrate, n_mels=80,
-                      fmin=40.0, fmax=samplingrate / 2, power_melgram=1.0,
+  m = Melspectrogram(n_dft=1024, n_hop=128, input_shape=(1, input_length),
+                      padding='same', sr=sampling_rate, n_mels=80,
+                      fmin=40.0, fmax=sampling_rate / 2, power_melgram=1.0,
                       return_decibel_melgram=True, trainable_fb=False,
                       trainable_kernel=False)
   m.trainable = False
