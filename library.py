@@ -1,5 +1,5 @@
 ###Libraries used
-from keras.models import Sequential, Model
+from keras.models import Model
 from keras.layers import Dense, Conv2D, MaxPooling2D, Flatten, add, Convolution2D, Dropout, LSTM, Permute
 from keras.layers import Dropout, BatchNormalization, Activation, Input, Lambda, Dot, Softmax
 from keras.layers import GlobalAveragePooling2D, AveragePooling2D, Bidirectional
@@ -421,10 +421,13 @@ def LSTM_Net_text(filepath, batch_size=128, epochs=3):
   x_train = X / float(n_vocab)
   y_train = np_utils.to_categorical(dataY)
 
-  model = Sequential()
-  model.add(LSTM(256, input_shape=(x_train.shape[1], x_train.shape[2])))
-  model.add(Dropout(0.2))
-  model.add(Dense(y_train.shape[1], activation='softmax'))
+  inputs = Input((x_train.shape[1], x_train.shape[2]))
+
+  x = LSTM(256)(inputs)
+  x = Dropout(0.2)(x)
+  x = Dense(y_train.shape[1], activation='softmax')(x)
+
+  model = Model(inputs=inputs, outputs=x)
 
   model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
   model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
@@ -452,12 +455,15 @@ def LSTM_big_Net_text(filepath, batch_size=128, epochs=3):
   x_train = X / float(n_vocab)
   y_train = np_utils.to_categorical(dataY)
 
-  model = Sequential()
-  model.add(LSTM(256, input_shape=(x_train.shape[1], x_train.shape[2]), return_sequences=True))
-  model.add(Dropout(0.2))
-  model.add(LSTM(256))
-  model.add(Dropout(0.2))
-  model.add(Dense(y_train.shape[1], activation='softmax'))
+  inputs = Input((x_train.shape[1], x_train.shape[2]))
+
+  x = LSTM(256, return_sequences=True)(inputs)
+  x = Dropout(0.2)(x)
+  x = LSTM(256)(x)
+  x = Dropout(0.2)(x)
+  x = Dense(y_train.shape[1], activation='softmax')(x)
+
+  model = Model(inputs=inputs, outputs=x)
 
   model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
   model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
@@ -487,9 +493,12 @@ def LSTM_Net_time_series(filepath, time_steps=1, batch_size=1, epochs=3):
   x_train = numpy.reshape(x_train, (x_train.shape[0], 1, x_train.shape[1]))
   testX = numpy.reshape(testX, (testX.shape[0], 1, testX.shape[1]))
 
-  model = Sequential()
-  model.add(LSTM(4, input_shape=(1, time_steps)))
-  model.add(Dense(1))
+  inputs = Input((1, time_steps))
+
+  x = LSTM(4)(inputs)
+  x = Dense(1)(x)
+
+  model = Model(inputs=inputs, outputs=x)
 
   model.compile(loss='mean_squared_error',optimizer='adam',metrics=['accuracy'])
   model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
@@ -531,11 +540,14 @@ def Stock_Net(filepath, batch_size=16, epochs=3):
   testX = numpy.reshape(testX, (testX.shape[0], 1, testX.shape[1]))
   step_size = 1
 
-  model = Sequential()
-  model.add(LSTM(32, input_shape=(1, step_size), return_sequences = True))
-  model.add(LSTM(16))
-  model.add(Dense(1))
-  model.add(Activation('linear'))
+  inputs = Input((1, step_size))
+
+  x = LSTM(32, input_shape=(1, step_size), return_sequences = True)(inputs)
+  x = LSTM(16)(x)
+  x = Dense(1)(x)
+  x = Activation('linear')(x)
+
+  model = Model(inputs=inputs, outputs=x)
 
   model.compile(loss='mean_squared_error', optimizer='adagrad')
   model.fit(trainX, trainY, epochs=epochs, batch_size=batch_size, verbose=2)
