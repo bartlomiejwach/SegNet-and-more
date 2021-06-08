@@ -399,41 +399,7 @@ def WideResNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=3
   model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
   model.save('WideResNet.model')
 
-def LSTM_Net_text(filepath, batch_size=128, epochs=3):
-
-  filename = filepath
-  raw_text = open(filename, 'r', encoding='utf-8').read()
-  raw_text = raw_text.lower()
-  chars = sorted(list(set(raw_text)))
-  char_to_int = dict((c, i) for i, c in enumerate(chars))
-  n_chars = len(raw_text)
-  n_vocab = len(chars)
-  seq_length = 100
-  dataX = []
-  dataY = []
-  for i in range(0, n_chars - seq_length, 1):
-    seq_in = raw_text[i:i + seq_length]
-    seq_out = raw_text[i + seq_length]
-    dataX.append([char_to_int[char] for char in seq_in])
-    dataY.append(char_to_int[seq_out])
-  n_patterns = len(dataX)
-  X = numpy.reshape(dataX, (n_patterns, seq_length, 1))
-  x_train = X / float(n_vocab)
-  y_train = np_utils.to_categorical(dataY)
-
-  inputs = Input((x_train.shape[1], x_train.shape[2]))
-
-  x = LSTM(256)(inputs)
-  x = Dropout(0.2)(x)
-  x = Dense(y_train.shape[1], activation='softmax')(x)
-
-  model = Model(inputs=inputs, outputs=x)
-
-  model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
-  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
-  model.save('LSTM_Net_text.model')
-
-def LSTM_big_Net_text(filepath, batch_size=128, epochs=3):
+def LSTM_text(filepath, batch_size=128, epochs=3):
 
   filename = filepath
   raw_text = open(filename, 'r', encoding='utf-8').read()
@@ -469,7 +435,7 @@ def LSTM_big_Net_text(filepath, batch_size=128, epochs=3):
   model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
   model.save('LSTM_big_Net_text.model')
 
-def LSTM_Net_time_series(filepath, time_steps=1, batch_size=1, epochs=3):
+def LSTM_time_series(filepath, time_steps=1, batch_size=1, epochs=3):
 
   def create_dataset(dataset, time_steps=1):
     dataX, dataY = [], []
@@ -495,7 +461,12 @@ def LSTM_Net_time_series(filepath, time_steps=1, batch_size=1, epochs=3):
 
   inputs = Input((1, time_steps))
 
-  x = LSTM(4)(inputs)
+  x = LSTM(30, return_sequences=True, stateful=False)(inputs)
+  x = Activation('relu')(x)
+  x = LSTM(30, return_sequences=True, stateful=False)(x)
+  x = Activation('relu')(x)
+  x = Dense(30)(x)
+  x = Activation('relu')(x)
   x = Dense(1)(x)
 
   model = Model(inputs=inputs, outputs=x)
@@ -504,7 +475,7 @@ def LSTM_Net_time_series(filepath, time_steps=1, batch_size=1, epochs=3):
   model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
   model.save('LSTM_Net_time_series.model')
 
-def Stock_Net(filepath, batch_size=16, epochs=3):
+def LSTM_Stock(filepath, batch_size=16, epochs=3):
 
   def new_dataset(dataset, step_size):
     data_X, data_Y = [], []
@@ -542,10 +513,13 @@ def Stock_Net(filepath, batch_size=16, epochs=3):
 
   inputs = Input((1, step_size))
 
-  x = LSTM(32, input_shape=(1, step_size), return_sequences = True)(inputs)
-  x = LSTM(16)(x)
+  x = LSTM(30, return_sequences=True, stateful=False)(inputs)
+  x = Activation('relu')(x)
+  x = LSTM(30, return_sequences=True, stateful=False)(x)
+  x = Activation('relu')(x)
+  x = Dense(30)(x)
+  x = Activation('relu')(x)
   x = Dense(1)(x)
-  x = Activation('linear')(x)
 
   model = Model(inputs=inputs, outputs=x)
 
