@@ -53,25 +53,24 @@
 #-------------------------------------LSTM-text-prediction-Structure--------------------------------------
 ### model_name(filepath, batch_size=128, epochs=3)
 
-#from library import LSTM_Net_text, LSTM_big_Net_text
-#LSTM_Net_text("datasets/wonderland.txt")
-#LSTM_big_Net_text("datasets/wonderland.txt")
+#from library import LSTM_text
+#LSTM_text("datasets/wonderland.txt")
 #---------------------------------------------------------------------------------------------------------
 #
 #
 #--------------------------------------LSTM-time-series-Structure-----------------------------------------
 ### model_name(filepath, time_steps=1, batch_size=1, epochs=3)
 
-#from library import LSTM_Net_time_series
-#LSTM_Net_time_series("datasets/airline.csv")
+#from library import LSTM_time_series
+#LSTM_time_series("datasets/airline.csv")
 #---------------------------------------------------------------------------------------------------------
 #
 #
 #--------------------------------------Stock-Prediction-Structure-----------------------------------------
 ### model_name(filepath, batch_size=16, epochs=3)
 
-#from library import Stock_Net
-#Stock_Net('datasets/apple_share_price.csv')
+#from library import LSTM_Stock
+#LSTM_Stock('datasets/apple_share_price.csv')
 #---------------------------------------------------------------------------------------------------------
 #
 #
