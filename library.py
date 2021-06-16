@@ -1,10 +1,11 @@
 ###Libraries used
-from keras.models import Model
+import tensorflow as tf
+from keras.models import Model, Sequential
 from keras.layers import Dense, Conv2D, MaxPooling2D, Flatten, add, Convolution2D, Dropout, LSTM, Permute
 from keras.layers import Dropout, BatchNormalization, Activation, Input, Lambda, Dot, Softmax
 from keras.layers import GlobalAveragePooling2D, AveragePooling2D, Bidirectional
 from keras.layers.core import Activation, Reshape
-from layers import resnet_layer, fire_module, Inception_block, conv_block_nf, create_wide_residual_network
+from layers import resnet_layer, fire_module, conv_block_nf, create_wide_residual_network
 import pandas as pd
 from keras.regularizers import l2
 import numpy
@@ -19,38 +20,36 @@ from tensorflow import squeeze
 ###Models
 ###Models will be saved as Model_Name.model
 
-def AlexNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3):
+def AlexNet(train_ds, classes=10, batch_size=32, epochs=3): #227x227
 
-  inputs = Input(shape=input_shape)
-
-  x = Conv2D(96, (11, 11), activation='relu', padding='same')(inputs)
-  x = MaxPooling2D((2, 2), strides=(2, 2))(x)
-
-  x = Conv2D(256, (5, 5), activation='relu', padding='same')(x)
-  x = MaxPooling2D((2, 2), strides=(2, 2))(x)
-
-  x = Conv2D(384, (3, 3), activation='relu', padding='same')(x)
-  x = Conv2D(384, (3, 3), activation='relu', padding='same')(x)
-  x = Conv2D(256, (3, 3), activation='relu', padding='same')(x)
-  x = MaxPooling2D((2, 2), strides=(2, 2))(x)
-
-  y = Flatten()(x)
-  y = Dense(4096, activation='relu')(y)
-  y = Dropout(0.4)(y)
-  y = Dense(4096, activation='relu')(y)
-  y = Dropout(0.4)(y)
-  y = Dense(1000, activation='relu')(y)
-  y = Dropout(0.4)(y)
-  outputs = Dense(classes, activation='softmax')(y)
-
-  model = Model(inputs=inputs, outputs=outputs)
-  model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
-  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
+  model = Sequential([
+  Conv2D(filters=96, kernel_size=(11,11), strides=(4,4), activation='relu', input_shape=(227,227,3)),
+  BatchNormalization(),
+  MaxPooling2D(pool_size=(3,3), strides=(2,2)),
+  Conv2D(filters=256, kernel_size=(5,5), strides=(1,1), activation='relu', padding="same"),
+  BatchNormalization(),
+  MaxPooling2D(pool_size=(3,3), strides=(2,2)),
+  Conv2D(filters=384, kernel_size=(3,3), strides=(1,1), activation='relu', padding="same"),
+  BatchNormalization(),
+  Conv2D(filters=384, kernel_size=(3,3), strides=(1,1), activation='relu', padding="same"),
+  BatchNormalization(),
+  Conv2D(filters=256, kernel_size=(3,3), strides=(1,1), activation='relu', padding="same"),
+  BatchNormalization(),
+  MaxPooling2D(pool_size=(3,3), strides=(2,2)),
+  Flatten(),
+  Dense(4096, activation='relu'),
+  Dropout(0.5),
+  Dense(4096, activation='relu'),
+  Dropout(0.5),
+  Dense(classes, activation='softmax')
+  ])
+  model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
+  model.fit(train_ds, batch_size=batch_size, epochs=epochs)
   model.save('AlexNet.model')
 
-def VGG19(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3):
+def VGG19(train_ds, classes=10, batch_size=32, epochs=3): #224x224
 
-  inputs = Input(shape=input_shape)
+  inputs = Input(shape=[112,112,3])
 
   x = Conv2D(64, (3, 3), activation='relu', padding='same')(inputs)
   x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
@@ -84,13 +83,13 @@ def VGG19(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, ep
   outputs = Dense(classes, activation='softmax')(y)
 
   model = Model(inputs=inputs, outputs=outputs)
-  model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
-  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
+  model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
+  model.fit(train_ds, batch_size=batch_size, epochs=epochs)
   model.save('VGG19.model')
 
-def VGG16(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3):
+def VGG16(train_ds, classes=10, batch_size=32, epochs=3): #224x224
 
-  inputs = Input(shape=input_shape)
+  inputs = Input(shape=[224,224,3])
 
   x = Conv2D(64, (3, 3),activation='relu',padding='same')(inputs)
   x = Conv2D(64, (3, 3),activation='relu',padding='same')(x)
@@ -121,11 +120,11 @@ def VGG16(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, ep
   outputs = Dense(classes, activation='softmax')(y)
 
   model = Model(inputs=inputs, outputs=outputs)
-  model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
-  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
+  model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
+  model.fit(train_ds, batch_size=batch_size, epochs=epochs)
   model.save('VGG16.model')
 
-def ResNet_1(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3, depth=20):
+def ResNet_1(train_ds, classes=10, batch_size=32, epochs=3, depth=20): #32x32
 
   if (depth - 2) % 6 != 0:
     raise ValueError('depth should be 6n+2 (eg 20, 32, 44 in [a])')
@@ -133,7 +132,7 @@ def ResNet_1(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32,
   num_filters = 16
   num_res_blocks = int((depth - 2) / 6)
 
-  inputs = Input(shape=input_shape)
+  inputs = Input(shape=[32,32,3])
   x = resnet_layer(inputs=inputs)
 
   for stack in range(3):
@@ -156,18 +155,18 @@ def ResNet_1(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32,
                   kernel_initializer='he_normal')(y)
 
   model = Model(inputs=inputs, outputs=outputs)
-  model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
-  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
+  model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
+  model.fit(train_ds, batch_size=batch_size, epochs=epochs)
   model.save('ResNet_1.model')
 
-def ResNet_2(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3, depth=20):
+def ResNet_2(train_ds, classes=10, batch_size=32, epochs=3, depth=20): #32x32
 
   if (depth - 2) % 9 != 0:
     raise ValueError('depth should be 9n+2 (eg 56 or 110 in [b])')
   num_filters_in = 16
   num_res_blocks = int((depth - 2) / 9)
 
-  inputs = Input(shape=input_shape)
+  inputs = Input(shape=[32,32,3])
   x = resnet_layer(inputs=inputs,
                     num_filters=num_filters_in,
                     conv_first=True)
@@ -220,13 +219,13 @@ def ResNet_2(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32,
   outputs = Dense(classes,activation='softmax',kernel_initializer='he_normal')(y)
 
   model = Model(inputs=inputs, outputs=outputs)
-  model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
-  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
+  model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
+  model.fit(train_ds, batch_size=batch_size, epochs=epochs)
   model.save('ResNet_2.model')
 
-def SqueezeNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3):
+def SqueezeNet(train_ds, classes=10, batch_size=32, epochs=3): #227x227
 
-  inputs = Input(shape=input_shape)
+  inputs = Input(shape=[48,48,3])
   x = Convolution2D(64, (3, 3), strides=(2, 2), padding='valid')(inputs)
   x = Activation('relu')(x)
   x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2))(x)
@@ -254,92 +253,65 @@ def SqueezeNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=3
   
   model = Model(inputs, x)
 
-  model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
-  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
+  model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
+  model.fit(train_ds, batch_size=batch_size, epochs=epochs)
   model.save('SqueezeNet.model')
 
-def GoogleNet(x_train, y_train, input_shape=[244,244,3], classes=10, batch_size=32, epochs=3):
+def LeNet(train_ds, classes=10, batch_size=32, epochs=3): #32x32
 
-  input_layer = Input(shape=input_shape)
+  model = Sequential()
 
-  X = Conv2D(filters = 64, kernel_size = (7,7), strides = 2, padding = 'valid', activation = 'relu')(input_layer)
-  X = MaxPooling2D(pool_size = (3,3), strides = 2)(X)
-  X = Conv2D(filters = 64, kernel_size = (1,1), strides = 1, padding = 'same', activation = 'relu')(X)
-  X = Conv2D(filters = 192, kernel_size = (3,3), padding = 'same', activation = 'relu')(X)
-  X = MaxPooling2D(pool_size= (3,3), strides = 2)(X)
-  X = Inception_block(X, f1 = 64, f2_conv1 = 96, f2_conv3 = 128, f3_conv1 = 16, f3_conv5 = 32, f4 = 32)
-  X = Inception_block(X, f1 = 128, f2_conv1 = 128, f2_conv3 = 192, f3_conv1 = 32, f3_conv5 = 96, f4 = 64)
-  X = MaxPooling2D(pool_size= (3,3), strides = 2)(X)
-  X = Inception_block(X, f1 = 192, f2_conv1 = 96, f2_conv3 = 208, f3_conv1 = 16, f3_conv5 = 48, f4 = 64)
+  model.add(Conv2D(input_shape=(32,32,3), kernel_size=(5, 5), filters=20, activation='relu'))
+  model.add(MaxPooling2D(pool_size=(2,2), strides=2, padding='same'))
 
-  X1 = AveragePooling2D(pool_size = (5,5), strides = 3)(X)
-  X1 = Conv2D(filters = 128, kernel_size = (1,1), padding = 'same', activation = 'relu')(X1)
-  X1 = Flatten()(X1)
-  X1 = Dense(1024, activation = 'relu')(X1)
-  X1 = Dropout(0.7)(X1)
-  X1 = Dense(5, activation = 'softmax')(X1)
-  X1 = Flatten()(X1)
+  model.add(Conv2D(kernel_size=(5, 5), filters=50,  activation='relu', padding='same'))
+  model.add(MaxPooling2D(pool_size=(2,2), strides=2, padding='same'))
 
-  X = Inception_block(X, f1 = 160, f2_conv1 = 112, f2_conv3 = 224, f3_conv1 = 24, f3_conv5 = 64, f4 = 64)
-  X = Inception_block(X, f1 = 128, f2_conv1 = 128, f2_conv3 = 256, f3_conv1 = 24, f3_conv5 = 64, f4 = 64)
-  X = Inception_block(X, f1 = 112, f2_conv1 = 144, f2_conv3 = 288, f3_conv1 = 32, f3_conv5 = 64, f4 = 64)
+  model.add(Flatten())
+  model.add(Dense(500, activation='relu'))
+  model.add(Dense(classes, activation='softmax'))
+  model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
-  X2 = AveragePooling2D(pool_size = (5,5), strides = 3)(X)
-  X2 = Conv2D(filters = 128, kernel_size = (1,1), padding = 'same', activation = 'relu')(X2)
-  X2 = Flatten()(X2)
-  X2 = Dense(1024, activation = 'relu')(X2)
-  X2 = Dropout(0.7)(X2)
-  X2 = Dense(1000, activation = 'softmax')(X2)
-  X2 = Flatten()(X2)
+  model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
+  model.fit(train_ds, batch_size=batch_size, epochs=epochs)
+  model.save('LeNet.model')
+
+def ZFNet(train_ds, classes=10, batch_size=32, epochs=3): #32x32
+
+  model = Sequential()
+
+  model.add(Conv2D(input_shape=(32,32,3), kernel_size=(7,7), filters=96, activation='relu',strides= [1,1],padding= 'valid'))# Convolution layer
+  model.add(MaxPooling2D(pool_size=(3,3), strides=[2,2]))# Pooling layer
+  model.add(BatchNormalization(axis= 1))
+
+  model.add(Conv2D(kernel_size=(5,5), filters=256, activation='relu',strides= [2,2],padding= 'same'))# Convolution layer
+  model.add(MaxPooling2D(pool_size=(3,3), strides=[1,1]))# Pooling layer
+  model.add(BatchNormalization(axis= 1))
+
+  model.add(Conv2D(kernel_size=(3,3), filters=384,activation='relu',strides= [1,1],padding= 'same'))# Convolution layer
+  model.add(BatchNormalization(axis= 1))
+
+  model.add(Conv2D(kernel_size=(3,3), filters=384, activation='relu',strides= [1,1],padding= 'same'))# Convolution layer
+  model.add(BatchNormalization(axis= 1))
+
+  model.add(Conv2D(kernel_size=(3,3), filters=256, activation='relu',strides= [1,1],padding= 'same'))# Convolution layer
+  model.add(MaxPooling2D(pool_size=(3,3), strides=[1,1]))# Pooling layer
+  model.add(BatchNormalization(axis= 1))
+
+  model.add(Flatten())
+  model.add(Dense(4096, activation='relu'))
+  model.add(Dropout(0.5)) 
+  model.add(Dense(4096, activation='relu'))
+  model.add(Dropout(0.5)) 
+  model.add(Dense(classes, activation='softmax'))
   
-  X = Inception_block(X, f1 = 256, f2_conv1 = 160, f2_conv3 = 320, f3_conv1 = 32, 
-                      f3_conv5 = 128, f4 = 128)
-
-  X = MaxPooling2D(pool_size = (3,3), strides = 2)(X)
-  X = Inception_block(X, f1 = 256, f2_conv1 = 160, f2_conv3 = 320, f3_conv1 = 32, f3_conv5 = 128, f4 = 128)
-  X = Inception_block(X, f1 = 384, f2_conv1 = 192, f2_conv3 = 384, f3_conv1 = 48, f3_conv5 = 128, f4 = 128)
-  X = GlobalAveragePooling2D(name = 'GAPL')(X)
-  X = Dropout(0.4)(X)
-
-  X = Dense(classes, activation = 'softmax')(X)
-  X = Flatten()(X)
-
-  model = Model(input_layer, [X, X1, X2])
-
-  model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
-  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
-  model.save('GoogleNet.model')
-
-def ZFNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3):
-
-  inputs = Input(shape=input_shape)
-
-  x = Conv2D(96, (7, 7), strides=(2, 2))(inputs)
-  x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='same')(x)
-  x = BatchNormalization(axis=3)(x)
-
-  x = Conv2D(256, (5, 5), strides=(4, 4))(x)
-  x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='same')(x)
-  x = BatchNormalization(axis=3)(x)
-
-  x = Conv2D(512, (3, 3), strides=(1, 1), padding='same')(x)
-  x = Conv2D(1024, (3, 3), strides=(1, 1), padding='same')(x)
-  x = Conv2D(512, (3, 3), strides=(1, 1), padding='same')(x)
-  x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='same')(x)
-
-  y = Dense(4096)(x)
-  y = Dense(4096)(y)
-  y = Dense(classes)(y)
-  outputs = Activation('softmax')(y)
-
-  model = Model(inputs=inputs, outputs=outputs)
-  model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
-  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
+  model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
+  model.fit(train_ds, batch_size=batch_size, epochs=epochs)
   model.save('ZFNet.model')
 
-def NFNet_F2(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3):
+def NFNet_F2(train_ds, classes=10, batch_size=32, epochs=3): #32x32
 
-  inputs = Input(shape=input_shape)
+  inputs = Input(shape=[32,32,3])
 
   for _ in range(2):
     x = conv_block_nf(inputs, 32)
@@ -353,13 +325,13 @@ def NFNet_F2(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32,
   outputs = Dense(classes, activation="softmax")(x)
 
   model = Model(inputs=inputs, outputs=outputs)
-  model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
-  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
+  model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
+  model.fit(train_ds, batch_size=batch_size, epochs=epochs)
   model.save('NFNet_F2.model')
 
-def ColorNet(x_train, y_train, input_shape=[125,125,3], classes=10, batch_size=32, epochs=3):
+def ColorNet(train_ds, classes=10, batch_size=32, epochs=3): #125x125
 
-  inputs = Input(shape=input_shape)
+  inputs = Input(shape=[125,125,3])
 
   x = Conv2D(16, (3, 3),activation="relu")(inputs)
   x = Conv2D(16, (5, 5),activation="relu")(x)
@@ -384,19 +356,19 @@ def ColorNet(x_train, y_train, input_shape=[125,125,3], classes=10, batch_size=3
   outputs = Dense(classes, activation="softmax")(y)
 
   model = Model(inputs=inputs, outputs=outputs)
-  model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
-  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
+  model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
+  model.fit(train_ds, batch_size=batch_size, epochs=epochs)
   model.save('ColorNet.model')
 
-def WideResNet(x_train, y_train, input_shape=[32,32,3], classes=10, batch_size=32, epochs=3, depth=28):
+def WideResNet(train_ds, classes=10, batch_size=32, epochs=3, depth=28): #32x32
 
-  inputs = Input(shape=input_shape)
+  inputs = Input(shape=[32,32,3])
 
   x = create_wide_residual_network(classes, inputs, depth)
 
   model = Model(inputs=inputs, outputs=x)
-  model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
-  model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
+  model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
+  model.fit(train_ds, batch_size=batch_size, epochs=epochs)
   model.save('WideResNet.model')
 
 def LSTM_text(filepath, batch_size=128, epochs=3):
@@ -431,7 +403,7 @@ def LSTM_text(filepath, batch_size=128, epochs=3):
 
   model = Model(inputs=inputs, outputs=x)
 
-  model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
+  model.compile(loss='binary_crossentropy',optimizer='adam', metrics=['accuracy'])
   model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
   model.save('LSTM_big_Net_text.model')
 
@@ -471,7 +443,7 @@ def LSTM_time_series(filepath, time_steps=1, batch_size=1, epochs=3):
 
   model = Model(inputs=inputs, outputs=x)
 
-  model.compile(loss='mean_squared_error',optimizer='adam',metrics=['accuracy'])
+  model.compile(loss='mean_squared_error',optimizer='adam')
   model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
   model.save('LSTM_Net_time_series.model')
 
