@@ -81,7 +81,7 @@ from library import ResNet_1, ResNet_2, WideResNet
 ### model_name(filepath, batch_size=128, epochs=3)
 
 from library import LSTM_text
-#LSTM_text("datasets/wonderland.txt", epochs=30)
+LSTM_text("datasets/wonderland.txt", epochs=30)
 #---------------------------------------------------------------------------------------------------------
 #
 #

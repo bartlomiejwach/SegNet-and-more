@@ -405,7 +405,7 @@ def LSTM_text(filepath, batch_size=128, epochs=3):
 
   model.compile(loss='binary_crossentropy',optimizer='adam', metrics=['accuracy'])
   model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
-  model.save('LSTM_big_Net_text.model')
+  model.save('LSTM_text.model')
 
 def LSTM_time_series(filepath, time_steps=1, batch_size=1, epochs=3):
 
@@ -495,7 +495,7 @@ def LSTM_Stock(filepath, batch_size=16, epochs=3):
 
   model = Model(inputs=inputs, outputs=x)
 
-  model.compile(loss='mean_squared_error', optimizer='adagrad')
+  model.compile(loss='mean_squared_error', optimizer='adam')
   model.fit(trainX, trainY, epochs=epochs, batch_size=batch_size, verbose=2)
 
   model.save('Stock_Net.model')
