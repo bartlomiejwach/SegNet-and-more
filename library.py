@@ -44,12 +44,13 @@ def AlexNet(train_ds, classes=10, batch_size=32, epochs=3): #227x227
   Dense(classes, activation='softmax')
   ])
   model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
+  model.summary()
   model.fit(train_ds, batch_size=batch_size, epochs=epochs)
   model.save('AlexNet.model')
 
 def VGG19(train_ds, classes=10, batch_size=32, epochs=3): #224x224
 
-  inputs = Input(shape=[112,112,3])
+  inputs = Input(shape=[224,224,3])
 
   x = Conv2D(64, (3, 3), activation='relu', padding='same')(inputs)
   x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
@@ -84,6 +85,7 @@ def VGG19(train_ds, classes=10, batch_size=32, epochs=3): #224x224
 
   model = Model(inputs=inputs, outputs=outputs)
   model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
+  model.summary()
   model.fit(train_ds, batch_size=batch_size, epochs=epochs)
   model.save('VGG19.model')
 
@@ -121,6 +123,7 @@ def VGG16(train_ds, classes=10, batch_size=32, epochs=3): #224x224
 
   model = Model(inputs=inputs, outputs=outputs)
   model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
+  model.summary()
   model.fit(train_ds, batch_size=batch_size, epochs=epochs)
   model.save('VGG16.model')
 
@@ -156,6 +159,7 @@ def ResNet_1(train_ds, classes=10, batch_size=32, epochs=3, depth=20): #32x32
 
   model = Model(inputs=inputs, outputs=outputs)
   model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
+  model.summary()
   model.fit(train_ds, batch_size=batch_size, epochs=epochs)
   model.save('ResNet_1.model')
 
@@ -220,6 +224,7 @@ def ResNet_2(train_ds, classes=10, batch_size=32, epochs=3, depth=20): #32x32
 
   model = Model(inputs=inputs, outputs=outputs)
   model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
+  model.summary()
   model.fit(train_ds, batch_size=batch_size, epochs=epochs)
   model.save('ResNet_2.model')
 
@@ -254,6 +259,7 @@ def SqueezeNet(train_ds, classes=10, batch_size=32, epochs=3): #227x227
   model = Model(inputs, x)
 
   model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
+  model.summary()
   model.fit(train_ds, batch_size=batch_size, epochs=epochs)
   model.save('SqueezeNet.model')
 
@@ -273,6 +279,7 @@ def LeNet(train_ds, classes=10, batch_size=32, epochs=3): #32x32
   model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
   model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
+  model.summary()
   model.fit(train_ds, batch_size=batch_size, epochs=epochs)
   model.save('LeNet.model')
 
@@ -306,6 +313,7 @@ def ZFNet(train_ds, classes=10, batch_size=32, epochs=3): #32x32
   model.add(Dense(classes, activation='softmax'))
   
   model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
+  model.summary()
   model.fit(train_ds, batch_size=batch_size, epochs=epochs)
   model.save('ZFNet.model')
 
@@ -326,6 +334,7 @@ def NFNet_F2(train_ds, classes=10, batch_size=32, epochs=3): #32x32
 
   model = Model(inputs=inputs, outputs=outputs)
   model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
+  model.summary()
   model.fit(train_ds, batch_size=batch_size, epochs=epochs)
   model.save('NFNet_F2.model')
 
@@ -357,6 +366,7 @@ def ColorNet(train_ds, classes=10, batch_size=32, epochs=3): #125x125
 
   model = Model(inputs=inputs, outputs=outputs)
   model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
+  model.summary()
   model.fit(train_ds, batch_size=batch_size, epochs=epochs)
   model.save('ColorNet.model')
 
@@ -368,6 +378,7 @@ def WideResNet(train_ds, classes=10, batch_size=32, epochs=3, depth=28): #32x32
 
   model = Model(inputs=inputs, outputs=x)
   model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
+  model.summary()
   model.fit(train_ds, batch_size=batch_size, epochs=epochs)
   model.save('WideResNet.model')
 
@@ -404,6 +415,7 @@ def LSTM_text(filepath, batch_size=128, epochs=3):
   model = Model(inputs=inputs, outputs=x)
 
   model.compile(loss='binary_crossentropy',optimizer='adam', metrics=['accuracy'])
+  model.summary()
   model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
   model.save('LSTM_text.model')
 
@@ -444,6 +456,7 @@ def LSTM_time_series(filepath, time_steps=1, batch_size=1, epochs=3):
   model = Model(inputs=inputs, outputs=x)
 
   model.compile(loss='mean_squared_error',optimizer='adam')
+  model.summary()
   model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
   model.save('LSTM_Net_time_series.model')
 
@@ -494,10 +507,9 @@ def LSTM_Stock(filepath, batch_size=16, epochs=3):
   x = Dense(1)(x)
 
   model = Model(inputs=inputs, outputs=x)
-
   model.compile(loss='mean_squared_error', optimizer='adam')
+  model.summary()
   model.fit(trainX, trainY, epochs=epochs, batch_size=batch_size, verbose=2)
-
   model.save('Stock_Net.model')
 
 def RNN_Speech(x_train, y_train, classes, sampling_rate=16000, input_length=16000, batch_size=32, epochs=3):
@@ -532,10 +544,9 @@ def RNN_Speech(x_train, y_train, classes, sampling_rate=16000, input_length=1600
   output = Dense(classes, activation='softmax')(x)
 
   model = Model(inputs=[inputs], outputs=[output])
-
   model.compile(optimizer='adam', loss=['sparse_categorical_crossentropy'], metrics=['sparse_categorical_accuracy'])
+  model.summary()
   model.fit(x_train, validation_data=y_train, epochs=epochs, batch_size=batch_size,  use_multiprocessing=False, workers=4, verbose=2)
-
   model.save('RNN_Speech.model')
 
 def Att_RNN_Speech(x_train, y_train, classes, sampling_rate=16000, input_length=16000, batch_size=32, epochs=3):
@@ -581,8 +592,7 @@ def Att_RNN_Speech(x_train, y_train, classes, sampling_rate=16000, input_length=
   output = Dense(classes, activation='softmax')(x)
 
   model = Model(inputs=[inputs], outputs=[output])
-
   model.compile(optimizer='adam', loss=['sparse_categorical_crossentropy'], metrics=['sparse_categorical_accuracy'])
+  model.summary()
   model.fit(x_train, validation_data=y_train, epochs=epochs, batch_size=batch_size,  use_multiprocessing=False, workers=4, verbose=2)
-
   model.save('Att_RNN_Speech.model')
