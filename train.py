@@ -40,12 +40,12 @@ validation_ds = (validation_ds
 #
 #-------------------------------------Dataset-for-Speech-to-Text-recognition-----------------------------
 ###Big dataset to download (around 5 GB)
-
+'''
 from SpeechToText import SpeechGenerator, SpeechDownloader
 gscInfo, classes = SpeechDownloader.PrepareGoogleSpeechCmd(version=2, task='35word')
 x_train = SpeechGenerator.SpeechGen(gscInfo['train']['files'], gscInfo['train']['labels'], shuffle=True)
 y_train = SpeechGenerator.SpeechGen(gscInfo['val']['files'], gscInfo['val']['labels'], shuffle=True)
-
+'''
 #---------------------------------------------------------------------------------------------------------
 #
 #

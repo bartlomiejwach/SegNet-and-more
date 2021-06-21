@@ -405,7 +405,6 @@ def LSTM_text(filepath, batch_size=128, epochs=3):
   y_train = np_utils.to_categorical(dataY)
 
   inputs = Input((x_train.shape[1], x_train.shape[2]))
-
   x = LSTM(256, return_sequences=True)(inputs)
   x = Dropout(0.2)(x)
   x = LSTM(256)(x)
